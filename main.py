@@ -1,5 +1,5 @@
-from user import User
-from database import Session, init_db
+from database.user import User
+from database.database import Session, init_db
 
 def main():
     # Inicializar la base de datos

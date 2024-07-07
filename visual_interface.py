@@ -177,7 +177,10 @@ def login():
     # Verificar si el usuario y contraseña son correctos
     # Si son correctos, asignar el usuario a la variable user y cambiar logged_in a True
     # Si no son correctos, imprimir un mensaje de error
-    logged_in = True
+
+    if verify_user(username, password):
+        logged_in = True
+
     #user = User(username, password, " ")
 
 def register():
