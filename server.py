@@ -1,12 +1,13 @@
 import socket
 import threading
+from visual_interface import *
 
 
 class Server_Manager:
      
     def __init__(self):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((' ',0))
+        self.server.bind(('localhost',0))
         self.thread_dict={}
 
     def start_server(self):
@@ -21,10 +22,9 @@ class Server_Manager:
             client_handler.start()
 
     def handle_client(self,client_socket):
-        request = client_socket.recv(1024)
-        print(f"[*] Received: {request}")
-        client_socket.send(b"ACK!")
 
+        session = Session(client_socket)
+        session.home()
 
         # Close connection
         self.thread_dict.pop(client_socket.getpeername()[1])
