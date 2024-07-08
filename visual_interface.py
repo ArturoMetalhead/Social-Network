@@ -296,7 +296,6 @@ class Session:
 
     def login(self):
 
-
         self.client_socket.send("Ingrese su nombre de usuario: ".encode())
         username = self.client_socket.recv(1024).decode()
         self.verify_back(username) #
