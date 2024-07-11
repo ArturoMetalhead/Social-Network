@@ -3,6 +3,7 @@ import threading
 import sys
 import time
 import hashlib
+from models.model import *
 
 # Operation codes
 FIND_SUCCESSOR = 1
@@ -205,6 +206,22 @@ class ChordNode:
                     conn.sendall(response)
                 conn.close()
 
+    def store_data(self, key, data):
+        target_node = self.find_successor(key)
+        if target_node == self:
+            # Store in local database
+            with db.atomic():
+                if isinstance(data, User):
+                    User.create(**data.__dict__)
+                elif isinstance(data, Tweet):
+                    Tweet.create(**data.__dict__)
+                elif isinstance(data, Retweet):
+                    Retweet.create(**data.__dict__)
+                elif isinstance(data, Follow):
+                    Follow.create(**data.__dict__)
+        else:
+            # Forward to the appropriate node
+            target_node.store_data(key, data)
 
 
 ###########################################################################################
