@@ -206,22 +206,26 @@ class ChordNode:
                     conn.sendall(response)
                 conn.close()
 
-    def store_data(self, key, data):
+    def store_data(self, username, data):
+        key = getShaRepr(username)
         target_node = self.find_successor(key)
         if target_node == self:
             # Store in local database
             with db.atomic():
-                if isinstance(data, User):
-                    User.create(**data.__dict__)
+                user, created = User.get_or_create(username=username)
+                if isinstance(data, dict):
+                    for field, value in data.items():
+                        setattr(user, field, value)
+                    user.save()
                 elif isinstance(data, Tweet):
-                    Tweet.create(**data.__dict__)
+                    Tweet.create(user=user, content=data.content)
                 elif isinstance(data, Retweet):
-                    Retweet.create(**data.__dict__)
+                    Retweet.create(user=user, orig_user=data.orig_user, created_at=data.created_at, retweeted_at=data.retweeted_at)
                 elif isinstance(data, Follow):
-                    Follow.create(**data.__dict__)
+                    Follow.create(follower=user, following=data.following)
         else:
             # Forward to the appropriate node
-            target_node.store_data(key, data)
+            target_node.store_data(username, data)
 
 
 ###########################################################################################
