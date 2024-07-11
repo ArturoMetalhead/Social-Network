@@ -240,7 +240,7 @@ class ChordNode:
                 # Return all user data
                 return {
                     'user': user,
-                    'tweets': list(user.tweets),
+                    'tweets': list(user.tweets), ########################### Check out if this works 
                     'retweets': list(user.retweets),
                     'following': list(Follow.select().where(Follow.follower == user)),
                     'followers': list(Follow.select().where(Follow.following == user.username))
@@ -258,6 +258,17 @@ class ChordNode:
         else:
             # Forward request to the appropriate node
             return target_node.retrieve_data(username, data_type)
+        
+    def replicate_data(self, username, data, replication_factor=3): ###### Analize replication factor default value
+        key = getShaRepr(username)
+        nodes = [self]
+        current = self
+        for _ in range(replication_factor - 1):
+            current = current.successor
+            nodes.append(current)
+        
+        for node in nodes:
+            node.store_data(username, data)
 
 
 ###########################################################################################
