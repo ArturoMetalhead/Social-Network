@@ -3,6 +3,7 @@ import threading
 import sys
 import time
 import hashlib
+from models.model import *
 
 # Operation codes
 FIND_SUCCESSOR = 1
@@ -205,6 +206,80 @@ class ChordNode:
                     conn.sendall(response)
                 conn.close()
 
+    def store_data(self, username, data):
+        key = getShaRepr(username)
+        target_node = self.find_successor(key)
+        if target_node == self:
+            # Store in local database
+            with db.atomic():
+                user, created = User.get_or_create(username=username)
+                if isinstance(data, dict): 
+                    #This means that the data is the user's info
+                    for field, value in data.items():
+                        setattr(user, field, value)
+                    user.save()
+                elif isinstance(data, Tweet):
+                    Tweet.create(user=user, content=data.content)
+                elif isinstance(data, Retweet):
+                    Retweet.create(user=user, orig_user=data.orig_user, created_at=data.created_at, retweeted_at=data.retweeted_at)
+                elif isinstance(data, Follow):
+                    Follow.create(follower=user, following=data.following)
+        else:
+            # Forward to the appropriate node
+            target_node.store_data(username, data)
+
+    def retrieve_data(self, username, data_type=None):
+        key = getShaRepr(username)
+        target_node = self.find_successor(key)
+        if target_node == self:
+            # Retrieve from local database
+            user = User.get_or_none(User.username == username)
+            if user is None:
+                return None ################################################ Throw an error message, do not return NONE
+            if data_type is None:
+                # Return all user data
+                return {
+                    'user': user,
+                    'tweets': list(user.tweets), ########################### Check out if this works 
+                    'retweets': list(user.retweets),
+                    'following': list(Follow.select().where(Follow.follower == user)),
+                    'followers': list(Follow.select().where(Follow.following == user.username))
+                }
+            elif data_type == 'user':
+                return user
+            elif data_type == 'tweets':
+                return list(user.tweets)
+            elif data_type == 'retweets':
+                return list(user.retweets)
+            elif data_type == 'following':
+                return list(Follow.select().where(Follow.follower == user))
+            elif data_type == 'followers':
+                return list(Follow.select().where(Follow.following == user.username))
+        else:
+            # Forward request to the appropriate node
+            return target_node.retrieve_data(username, data_type)
+        
+    def replicate_data(self, username, data, replication_factor=3): ###### Analize replication factor default value
+        key = getShaRepr(username)
+        nodes = [self]
+        current = self
+        for _ in range(replication_factor - 1):
+            current = current.successor
+            nodes.append(current)
+        
+        for node in nodes:
+            node.store_data(username, data)
+
+    def recover_data(self, failed_node):
+        start_key = getShaRepr(failed_node.predecessor.username)
+        end_key = getShaRepr(failed_node.username)
+        
+        # Iterate through local database and redistribute data
+        for user in User.select():
+            key = getShaRepr(user.username)
+            if start_key < key <= end_key:
+                user_data = self.retrieve_data(user.username)
+                self.replicate_data(user.username, user_data)
 
 
 ###########################################################################################
