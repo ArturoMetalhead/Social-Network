@@ -270,6 +270,17 @@ class ChordNode:
         for node in nodes:
             node.store_data(username, data)
 
+    def recover_data(self, failed_node):
+        start_key = getShaRepr(failed_node.predecessor.username)
+        end_key = getShaRepr(failed_node.username)
+        
+        # Iterate through local database and redistribute data
+        for user in User.select():
+            key = getShaRepr(user.username)
+            if start_key < key <= end_key:
+                user_data = self.retrieve_data(user.username)
+                self.replicate_data(user.username, user_data)
+
 
 ###########################################################################################
 
