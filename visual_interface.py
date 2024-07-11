@@ -239,7 +239,7 @@
 
 import os
 from classes import *
-
+from chord.chord import ChordNode
 
 
 class Session:
@@ -332,8 +332,57 @@ class Session:
         #user = User(username, password, email)
 
     def profile(self):
-        # Extraer publicaciones hechas por el usuario
-        pass
+        user_data = self.local_node.retrieve_data(self.user.username) ########################
+
+        if user_data is None:
+            return [] ################################################ We should return an error message!!!!!!!!!!!!!!!!!!!
+        
+        posts = []
+        
+        # Adding tweets
+        for tweet in user_data.get('tweets', []):
+            posts.append({
+                'type': 'tweet',
+                'content': tweet.content,
+                'created_at': tweet.created_at
+            })
+        
+        # Adding retweets
+        for retweet in user_data.get('retweets', []):
+            posts.append({
+                'type': 'retweet',
+                'original_user': retweet.orig_user,
+                'created_at': retweet.created_at,
+                'retweeted_at': retweet.retweeted_at
+            })
+        
+        # Sorted by date created (recents first)
+        posts.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return posts
+
+    def display_profile(self, username: str):
+        """
+        Show user's posts.
+        
+        :param username: The name of the user whose posts we want to display.
+        """
+        posts = self.profile(username)
+        
+        if not posts:
+            print(f"El usuario @{username} no tiene publicaciones.")
+            return
+
+        print(f"Publicaciones de @{username}:")
+        for post in posts:
+            if post['type'] == 'tweet':
+                print(f"Tweet - {post['created_at']}:")
+                print(f"  {post['content']}")
+            elif post['type'] == 'retweet':
+                print(f"Retweet de @{post['original_user']} - {post['retweeted_at']}:")
+                print(f"  (Original creado en {post['created_at']})")
+            print("-" * 40)
+        
 
     def followings(self):
         # Extraer usuarios seguidos por el usuario
