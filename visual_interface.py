@@ -240,6 +240,7 @@
 import os
 from classes import *
 from chord.chord import ChordNode
+from datetime import datetime
 
 
 class Session:
@@ -374,9 +375,17 @@ class Session:
         user_followers = self.local_node.retrieve_data(self.user.username, "folllowers")
         return user_followers
 
-    def post(self):
-        # Crear una nueva publicación
-        pass
+    def post(self, content):
+        # Add a verif. for amount of characters
+        tweet = {
+            'user': self.user,
+            'content': content,
+            'created_at':datetime.now()
+        } ############################################# We need to verify if it takes this like an instance of Tweet
+
+        self.local_node.store_data(self.user.username, tweet)
+
+        # we need to notify the user if the tweet was posted correctly
 
     def logout(self):
         self.logged_in = False
