@@ -367,12 +367,12 @@ class Session:
         
 
     def followings(self):
-        # Extraer usuarios seguidos por el usuario
-        pass
+        user_followings = self.local_node.retrieve_data(self.user.username, "following")
+        return user_followings
 
     def followers(self):
-        # Extraer seguidores del usuario
-        pass
+        user_followers = self.local_node.retrieve_data(self.user.username, "folllowers")
+        return user_followers
 
     def post(self):
         # Crear una nueva publicación
