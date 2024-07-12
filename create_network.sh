@@ -1,1 +1,1 @@
-docker network create chord-network
+sudo docker network create chord-network

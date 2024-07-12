@@ -1,2 +1,4 @@
-sudo docker build -f docker_server.dockerfile -t servidor .
-sudo docker run -p 8000:8000 servidor
+sudo docker build -f dockerfile.server -t server-image .
+
+sudo docker run -d --name server1 --network chord-network server-image
+sudo docker run -d --name server2 --network chord-network server-image
