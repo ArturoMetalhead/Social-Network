@@ -332,29 +332,11 @@ class Session:
         #user = User(username, password, email)
 
     def profile(self):
-        user_data = self.local_node.retrieve_data(self.user.username) ########################
-
-        if user_data is None:
-            return [] ################################################ We should return an error message!!!!!!!!!!!!!!!!!!!
-        
+        user_tweets = self.local_node.retrieve_data(self.user.username, "tweets") ########################################
+        user_retweets = self.local_node.retrieve_data(self.user.username, "retweets")
         posts = []
-        
-        # Adding tweets
-        for tweet in user_data.get('tweets', []):
-            posts.append({
-                'type': 'tweet',
-                'content': tweet.content,
-                'created_at': tweet.created_at
-            })
-        
-        # Adding retweets
-        for retweet in user_data.get('retweets', []):
-            posts.append({
-                'type': 'retweet',
-                'original_user': retweet.orig_user,
-                'created_at': retweet.created_at,
-                'retweeted_at': retweet.retweeted_at
-            })
+        posts.extend(user_tweets)
+        posts.extend(user_retweets)
         
         # Sorted by date created (recents first)
         posts.sort(key=lambda x: x['created_at'], reverse=True)
