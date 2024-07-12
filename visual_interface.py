@@ -328,6 +328,12 @@ class Session:
         self.verify_back(email) #
         
         # Crear un nuevo usuario con los datos ingresados
+        data = {
+            "username": username,
+            "password": password,
+            "email": email
+        }
+        self.local_node.store_data(self.user.username, data)
         # Asignar el usuario a la variable user y cambiar logged_in a True
         self.logged_in = True
         #user = User(username, password, email)
