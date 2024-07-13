@@ -17,11 +17,34 @@ class Twitter_Server():
         while True:
             client, addr =self.server.accept()
             print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
-            client_handler = threading.Thread(target=self.handle_client, args=(client,))
-            self.thread_dict[addr[1]] = client_handler
-            client_handler.start()
+            session_handler = threading.Thread(target=self.handle_session, args=(client,))
+            self.thread_dict[addr[1]] = session_handler
+            session_handler.start()
 
-    def handle_client(self,client_socket):
+    def handle_session(self,client_socket):
+        while(True):
+            request = client_socket.recv(1024).decode()
+            if(request['action'] == 'login'):
+                response = self.login(request['username'], request['password'])
+            
+            elif(request['action'] == 'profile'):
+                response = self.profile()
+            
+            elif(request['action'] == 'followings'):
+                response = self.followings()
+            
+            elif(request['action'] == 'followers'):
+                response = self.followers()
+            
+            elif(request['action'] == 'post'):
+                response = self.post(request['content'])
+            
+            elif(request['action'] == 'stop_server'):
+                self.stop_server()
+                break
+            client_socket.send(response.encode())
+
+
      # Close connection
         self.thread_dict.pop(client_socket.getpeername()[1])
         client_socket.close()
@@ -30,8 +53,28 @@ class Twitter_Server():
         self.server.close()
         for key in self.thread_dict:
             self.thread_dict[key].join()
+        
+    def login(self,username, password):
+        # Verify if user exists in database
+        if self.user_exists(username):
+            # Verify if password is correct
+            if self.verify_password(username, password):
+                return "success"
+            else:
+                return "incorrect_password"
+        else:
+            return "user_not_found"
 
-    
+    def user_exists(self, username):
+        # Check if user exists in the database
+        # Implement your logic here
+        return False
+
+    def verify_password(self, username, password):
+        # Verify if the password is correct for the given username
+        # Implement your logic here
+        return False
+
     def profile(self):
         user_tweets = self.local_node.retrieve_data(self.user.username, "tweets") ########################################
         user_retweets = self.local_node.retrieve_data(self.user.username, "retweets")
