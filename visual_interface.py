@@ -1,3 +1,4 @@
+import json
 import os
 from classes import *
 from chord.chord import ChordNode
@@ -5,8 +6,9 @@ from datetime import datetime
 
 
 class Session:
-    def __init__(self, client_socket):
+    def __init__(self, client_socket, twitter_socket):
         self.client_socket = client_socket
+        self.twitter_socket = twitter_socket ###########################################################
         self.logged_in = False
         self.user = None
 
@@ -56,24 +58,34 @@ class Session:
         
         self.client_socket.send(("          GRACIAS POR USAR NUESTRA APP    ").encode())
 
+    def send_request(self, request):
+        self.twitter_socket.send(json.dumps(request).encode('utf-8'))
+        response = self.twitter_socket.recv(1024).decode('utf-8')
+        return json.loads(response)
+
     def login(self):
-
-
         self.client_socket.send("Ingrese su nombre de usuario: ".encode())
         username = self.client_socket.recv(1024).decode()
         self.verify_back(username) #
         self.client_socket.send("Ingrese su contraseña: ".encode())
         password = self.client_socket.recv(1024).decode()
         self.verify_back(password) #
-        
-        # Verificar si el usuario y contraseña son correctos
-        # Si son correctos, asignar el usuario a la variable user y cambiar logged_in a True
-        # Si no son correctos, imprimir un mensaje de error
-
-        if self.verify_user(username, password):
+        request = {
+            'action': 'login',
+            'username': username,
+            'password': password
+        }
+        response = self.send_request(request)
+        if response == 'success':
             self.logged_in = True
-
-        #user = User(username, password, " ")
+            self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
+        
+        elif response == "incorrect_password":
+            self.client_socket.send("La contraseña es incorrecta".encode())
+        else:
+            self.client_socket.send("El usuario no existe".encode())
+        self.home()
+        self.user = User(username, password, " ")
 
     def register(self):
 
