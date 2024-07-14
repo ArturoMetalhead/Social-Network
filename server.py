@@ -1,30 +1,36 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Table
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from datetime import datetime
+import socket
+import threading
+from visual_interface import *
 
-Base = declarative_base()
 
-user_server_association = Table('user_server_association', Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id')),
-    Column('server_id', Integer, ForeignKey('servers.id'))
-)
+class Server_Manager:
+     
+    def __init__(self):
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind(('localhost',0))
+        self.thread_dict={}
 
-post_server_association = Table('post_server_association', Base.metadata,
-    Column('post_id', Integer, ForeignKey('posts.id')),
-    Column('server_id', Integer, ForeignKey('servers.id')))
+    def start_server(self):
+        self.server.listen()
+        print(f"[*] Listening on {self.server.getsockname()}")
 
-class Server(Base):
-    __tablename__ = 'servers'
+        while True:
+            client, addr =self.server.accept()
+            print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
+            client_handler = threading.Thread(target=self.handle_client, args=(client,))
+            self.thread_dict[addr[1]] = client_handler
+            client_handler.start()
 
-    def __init__(self, name, ip, port):
-        self.name = name
-        self.ip = ip
-        self.port = port
+    def handle_client(self,client_socket):
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(20), nullable=False)
-    ip = Column(String(20), nullable=False)
-    port = Column(Integer, nullable=False)
-    users = relationship('User', secondary=user_server_association, back_populates='servers')
-    posts = relationship('Post', secondary=post_server_association, back_populates='servers')
+        session = Session(client_socket)
+        session.home()
+
+        # Close connection
+        self.thread_dict.pop(client_socket.getpeername()[1])
+        client_socket.close()
+
+    def stop_server(self):
+        self.server.close()
+        for key in self.thread_dict:
+            self.thread_dict[key].join()

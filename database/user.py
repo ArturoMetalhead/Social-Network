@@ -2,8 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Foreign
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-from posts import Post
-from database import Base
+from database.posts import Post
+from database.database import Base
 
 followers = Table('followers', Base.metadata,
     Column('follower_id', Integer, ForeignKey('users.id'), primary_key=True),
@@ -30,20 +30,6 @@ class User(Base):
     )
     posts = relationship('Post', back_populates='author')
 
-
-   # posts = relationship('Post', back_populates='User')
-
-    # def upload_post(self, db, text=None, images=None):
-    #     new_post = Post(
-    #         text=text,
-    #         images=images,
-    #         created_at=datetime.now(timezone.utc),
-    #         author=self
-    #     )
-    #     db.add(new_post)
-    #     db.commit()
-    #     db.refresh(new_post)
-    #     return new_post
 
     def follow(self, user):
         if not self.is_following(user):
