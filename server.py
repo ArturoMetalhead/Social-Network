@@ -12,6 +12,7 @@ class Server_Manager:
         self.server.bind((ip,port))
         self.thread_dict={}
         self.registered_servers = servers
+        self.sessions = {}
 
     def start_server(self):
         self.server.listen()
@@ -36,10 +37,12 @@ class Server_Manager:
     def handle_client(self,client_socket):
 
         session = Session(client_socket)
+        self.sessions[client_socket.getpeername()[1]] = session##########
         session.home()
 
         # Close connection
         self.thread_dict.pop(client_socket.getpeername()[1])
+        self.sessions.pop(client_socket.getpeername()[1])##########
         client_socket.close()
 
     def discover_servers(self):
@@ -72,7 +75,14 @@ class Server_Manager:
                 self.stop_server()
                 break
 
+            elif request['action'] == "send2client":
+                self.recv_and_send(request['data'],request['objetive'])
+
+
     def stop_server(self):
         self.server.close()
         for key in self.thread_dict:
             self.thread_dict[key].join()
+
+    def recv_and_send (self,data,client):
+        self.sessions[client].recieve_request(data)

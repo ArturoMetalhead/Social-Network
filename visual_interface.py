@@ -59,6 +59,7 @@ class Session:
         self.client_socket.send(("          GRACIAS POR USAR NUESTRA APP    ").encode())
 
     def send_request(self, request):
+        #enviar el socket.getpeername()[1] para saber a quien enviar la respuesta
         self.twitter_socket.send(json.dumps(request).encode('utf-8'))
         response = self.twitter_socket.recv(1024).decode('utf-8')
         return json.loads(response)
@@ -144,3 +145,6 @@ class Session:
             self.home()
         else:
             return
+        
+    def recieve_request(data):##############
+        pass
