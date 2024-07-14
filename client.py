@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import json
 
 
 
@@ -14,6 +15,9 @@ class Client_Manager:
         ip = input("Enter IP: ")
         port = int(input("Enter port: "))
         self.client.connect((ip, port))
+
+        ########
+        self.client.send(json.dumps({"type": "client"}).encode())
 
         while True:
             response = self.client.recv(1024)
