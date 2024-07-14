@@ -40,8 +40,10 @@ class Twitter_Server():
         while(True):
             request = client_socket.recv(1024).decode()
             if(request['action'] == 'login'):
-                response = self.login(request['username'], request['password'])
+                response = self.login(request['data'])
 
+            elif(request['action'] == 'register'):
+                response =  self.register(request['data'])
             
             elif(request['action'] == 'profile'):
                 response = self.profile()
@@ -122,16 +124,41 @@ class Twitter_Server():
         for key in self.thread_dict:
             self.thread_dict[key].join()
         
-    def login(self,username, password):
+    def login(self, data):
+        username = data['username']
+        password = data['password']
         # Verify if user exists in database
         if self.user_exists(username):
             # Verify if password is correct
             if self.verify_password(username, password):
-                return "success"
+                return 'success'
             else:
-                return "incorrect_password"
+                return 'incorrect_password'
         else:
-            return "user_not_found"
+            return 'user_not_found'
+        
+    def register(self, data):
+        username = data['username']
+        if self.user_exists(username):
+            return 'user_already_exists'
+        
+        password = data['password']
+        if not password:
+            return 'password_needed'
+        
+        email = data['email']
+        if not email:
+            return 'email_needed'
+        
+        user = {
+            'username': username,
+            'password': password,
+            'email': email
+        }
+
+        self.local_node.store_data(username, user)
+        return 'success'
+
 
     def user_exists(self, username):
         return self.local_node.verify_user(username)

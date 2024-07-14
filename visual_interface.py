@@ -3,6 +3,7 @@ import os
 from classes import *
 from chord.chord import ChordNode
 from datetime import datetime
+import bcrypt
 
 
 class Session:
@@ -71,6 +72,7 @@ class Session:
         self.client_socket.send("Ingrese su contraseña: ".encode())
         password = self.client_socket.recv(1024).decode()
         self.verify_back(password) #
+
         request = {
             'action': 'login',
             'username': username,
@@ -89,28 +91,43 @@ class Session:
         self.user = User(username, password, " ")
 
     def register(self):
+        succesful_register = False
+        while(not succesful_register):
+            self.client_socket.send("Ingrese su nombre de usuario: ".encode())
+            username = self.client_socket.recv(1024).decode()
+            self.verify_back(username) #
+            self.client_socket.send("Ingrese su contraseña: ".encode())
+            password = self.client_socket.recv(1024).decode()
+            self.verify_back(password) #
 
-        self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-        username = self.client_socket.recv(1024).decode()
-        self.verify_back(username) #
-        self.client_socket.send("Ingrese su contraseña: ".encode())
-        password = self.client_socket.recv(1024).decode()
-        self.verify_back(password) #
+            self.client_socket.send("Ingrese su correo electrónico: ".encode())
+            email = self.client_socket.recv(1024).decode()
+            self.verify_back(email) #
+            
+            # Crear un nuevo usuario con los datos ingresados
+            request = {
+                'type': 'operator',
+                'action': 'register',
+                'data': {
+                    'username': username,
+                    'password': password,
+                    'email': email
+                }
+            }
 
-        self.client_socket.send("Ingrese su correo electrónico: ".encode())
-        email = self.client_socket.recv(1024).decode()
-        self.verify_back(email) #
+            response = self.send_request(request)
+            if response == 'success':
+                self.logged_in = True
+                self.client_socket.send(f"Bienvenido {username}.".encode())
+            elif response == 'user_already_exists':
+                self.client_socket.send(f"El nombre de usuario {username} ya existe".encode())
+            elif response == 'password_needed':
+                self.client_socket.send("Es necesario que provea una contraseña".encode())
+            elif response == 'email_needed':
+                self.client_socket.send("Es necesario que provea una dirección de email".encode())
         
-        # Crear un nuevo usuario con los datos ingresados
-        data = {
-            "username": username,
-            "password": password,
-            "email": email
-        }
-        self.local_node.store_data(self.user.username, data)
         # Asignar el usuario a la variable user y cambiar logged_in a True
         self.logged_in = True
-        ########################################################################## Agregar verificacion
         user = User(username, password, email)
         self.user = user
 
