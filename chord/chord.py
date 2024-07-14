@@ -228,6 +228,24 @@ class ChordNode:
             # Forward to the appropriate node
             target_node.store_data(username, data)
 
+    def verify_user(self, username):
+        key = getShaRepr(username)
+        target_node = self.find_successor(key)
+        if target_node == self:
+            user = User.get_or_none(User.username == username)
+            return user is not None
+        else:
+            return target_node.verify_user
+    
+    def verify_password(self):
+        key = getShaRepr(self.user.username)
+        target_node = self.find_successor(key)
+        if target_node == self:
+            user = User.get_or_none(User.username == self.user.username)
+            return user.password == self.user.password
+        else:
+            return target_node.verify_password()
+
     def retrieve_data(self, username, data_type=None):
         key = getShaRepr(username)
         target_node = self.find_successor(key)
