@@ -134,18 +134,14 @@ class Twitter_Server():
             return "user_not_found"
 
     def user_exists(self, username):
-        # Check if user exists in the database
-        # Implement your logic here
-        return False
+        return self.local_node.verify_user(username)
 
     def verify_password(self, username, password):
-        # Verify if the password is correct for the given username
-        # Implement your logic here
-        return False
+        return self.local_node.verify_password(username, password)
 
-    def profile(self):
-        user_tweets = self.local_node.retrieve_data(self.user.username, "tweets") ########################################
-        user_retweets = self.local_node.retrieve_data(self.user.username, "retweets")
+    def profile(self, prof_username):
+        user_tweets = self.local_node.retrieve_data(prof_username, "tweets") ########################################
+        user_retweets = self.local_node.retrieve_data(prof_username, "retweets")
         posts = []
         posts.extend(user_tweets)
         posts.extend(user_retweets)
