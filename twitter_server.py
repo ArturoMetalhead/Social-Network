@@ -12,6 +12,7 @@ class Twitter_Server():
         self.thread_dict={}
         self.chord_node = None
         self.registered_servers = servers
+        self.sessions = {}
 
     def start_server(self):
         self.server.listen()
@@ -29,16 +30,18 @@ class Twitter_Server():
                 self.thread_dict[addr[1]] = server_handler
 
             else:
+                self.sessions[addr[1]] = client
                 session_handler = threading.Thread(target=self.handle_session, args=(client,))
                 self.thread_dict[addr[1]] = session_handler
                 session_handler.start()
 
 
-    def handle_session(self,client_socket):
+    def handle_session(self,client_socket): #aqui hago lo que el cliente le dijo al server que hiciera
         while(True):
             request = client_socket.recv(1024).decode()
             if(request['action'] == 'login'):
                 response = self.login(request['username'], request['password'])
+
             
             elif(request['action'] == 'profile'):
                 response = self.profile()
@@ -55,7 +58,12 @@ class Twitter_Server():
             elif(request['action'] == 'stop_server'):
                 self.stop_server()
                 break
-            client_socket.send(response.encode())
+
+            request={"data":response,"action":'send2client',"objetive":client_socket.getpeername()[1]} ####ahora no se si esto va en comillas simples o dobles
+
+            request=json.dumps(request).encode()
+
+            client_socket.send(request) #enviandoselo al servidor para que se lo de al cliente objetivo
 
 
      # Close connection
@@ -100,6 +108,13 @@ class Twitter_Server():
             elif request['action'] == "stop_server":
                 self.stop_server()
                 break
+            elif request['action'] == "send2client":
+                self.recv_and_send(request,request['objetive'])
+
+
+    def recv_and_send(self,request,objetive):
+        client_socket=self.sessions[objetive]
+        client_socket.send(request.encode())
             
 
     def stop_server(self):
