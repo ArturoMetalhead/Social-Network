@@ -52,6 +52,8 @@ class Server_Manager:
 
         session = Session(client_socket)
         self.sessions[client_socket.getpeername()[1]] = session##########
+
+
         session.home()
 
         # Close connection
@@ -119,3 +121,4 @@ class Server_Manager:
 
     def recv_and_send (self,data,client):
         self.sessions[client].recieve_request(data)
+

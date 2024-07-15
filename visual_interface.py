@@ -153,6 +153,7 @@ class Session:
                 print(f"  (Original creado en {post['created_at']})")
             print("-" * 40)
         
+
     def logout(self):
         self.logged_in = False
         self.user = None
@@ -165,3 +166,4 @@ class Session:
         
     def recieve_request(data):##############
         pass
+

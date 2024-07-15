@@ -8,6 +8,7 @@ import select
 
 
 
+
 class Client_Manager:
     def __init__(self,operators):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -95,7 +96,6 @@ class Client_Manager:
         self.discover_thread.join()
         self.discover_thread = None
         self.client.close()
-
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
