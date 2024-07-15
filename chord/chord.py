@@ -1,9 +1,10 @@
+import json
 import socket
 import threading
 import sys
 import time
 import hashlib
-from models.model import *
+from models.model import *####################################################
 
 # Operation codes
 FIND_SUCCESSOR = 1
@@ -13,6 +14,9 @@ GET_PREDECESSOR = 4
 NOTIFY = 5
 CHECK_PREDECESSOR = 6
 CLOSEST_PRECEDING_FINGER = 7
+STORE_DATA = 8
+VERIFY_USER = 9
+VERIFY_PASSWORD = 10
 
 # Get an unique id for a node (SHA1 hash of the ip address)
 def getShaRepr(data: str):
@@ -63,6 +67,19 @@ class ChordNodeReference:
         response = self._send_data(CLOSEST_PRECEDING_FINGER, str(id)).decode().split(',')
         return ChordNodeReference(int(response[0]), response[1], self.port)
 
+    def store_data(self, username, data):
+        serialized_data = json.dumps(data, default=lambda o: o.__dict__).replace(',',';')
+        response = self._send_data(STORE_DATA, f'{username},{serialized_data}')
+        return response.decode() == 'OK'
+    
+    def verify_user(self, username):
+        response = self._send_data(VERIFY_USER, username)
+        return response.decode() == 'True'
+    
+    def verify_password(self, username, password):
+        response = self._send_data(VERIFY_PASSWORD, f'{username},{password}')
+        return response.decode() == 'True'
+
     def __str__(self) -> str:
         return f'{self.id},{self.ip},{self.port}'
 
@@ -71,7 +88,7 @@ class ChordNodeReference:
 
 
 class ChordNode:
-    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 160):
+    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 4):
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
@@ -149,7 +166,7 @@ class ChordNode:
             try:
                 i = self.next
                 start = (self.id + 2 ** i) % (2 ** self.m)
-                self.finger[i] = self.find_successor(start)
+                self.finger[i] = self.find_succ(start)
                 self.next = (self.next + 1) % self.m
             except Exception as e:
                 print(f"Error in fix_fingers: {e}")
@@ -175,8 +192,14 @@ class ChordNode:
             while True:
                 conn, addr = s.accept()
                 print(f'new connection from {addr}' )
-
+                
                 data = conn.recv(1024).decode().split(',')
+                #data = conn.recv(1024).decode()
+
+                if(data[0]=='8'):
+                    data[2]=data[2].replace(';', ',')
+                    print(1)
+
 
                 data_resp = None
                 option = int(data[0])
@@ -200,15 +223,38 @@ class ChordNode:
                 elif option == CLOSEST_PRECEDING_FINGER:
                     id = int(data[1])
                     data_resp = self.closest_preceding_finger(id)
+                
+                elif option == STORE_DATA:
+                    username= data[1]
+                    serialized_data = data[2]
+                    data_dict = json.loads(serialized_data)
+                    success = self.store_data(username, data_dict)
+                    conn.sendall(b'OK' if success else b'ERROR')
+
+                elif option == VERIFY_USER:
+                    username = data[1]
+                    user_exists = self.verify_user(username)
+                    conn.sendall(str(user_exists).encode())
+
+                elif option == VERIFY_PASSWORD:
+                    username, password = data[1], data[2]
+                    password_correct = self.verify_password(username, password)
+                    conn.sendall(str(password_correct).encode())
 
                 if data_resp:
                     response = f'{data_resp.id},{data_resp.ip}'.encode()
                     conn.sendall(response)
                 conn.close()
 
+    def convert_data(self, data, comma= True):
+        if comma:
+            return data.replace(',', ';')
+        else:
+            return data.replace(';', ',')
+
     def store_data(self, username, data):
         key = getShaRepr(username)
-        target_node = self.find_successor(key)
+        target_node = self.find_succ(key)
         if target_node == self:
             # Store in local database
             with db.atomic():
@@ -228,9 +274,27 @@ class ChordNode:
             # Forward to the appropriate node
             target_node.store_data(username, data)
 
+    def verify_user(self, username):
+        key = getShaRepr(username)
+        target_node = self.find_succ(key)
+        if target_node == self:
+            user = User.get_or_none(User.username == username)
+            return user is not None
+        else:
+            return target_node.verify_user(username)
+    
+    def verify_password(self, username, password):
+        key = getShaRepr(username)
+        target_node = self.find_succ(key)
+        if target_node == self:
+            user = User.get_or_none(User.username == username)
+            return user.password == password
+        else:
+            return target_node.verify_password(username, password)
+
     def retrieve_data(self, username, data_type=None):
         key = getShaRepr(username)
-        target_node = self.find_successor(key)
+        target_node = self.find_succ(key)
         if target_node == self:
             # Retrieve from local database
             user = User.get_or_none(User.username == username)

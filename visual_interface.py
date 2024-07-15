@@ -1,250 +1,15 @@
-
-#region old
-
-# logged_in = False
-# user = None
-
-
-# def home():
-#     if logged_in:
-#         print("Bienvenido, ", user.username)
-#         print ("1. Ver perfil")
-#         print ("2. Ver seguidores")
-#         print ("3. Ver seguidos")
-#         print ("4. Publicar")
-#         print ("5. Cerrar sesión")
-#         option = input("Ingrese una opción: ")
-#         if option == "1":
-#             profile()
-#         elif option == "2":
-#             followers()
-#         elif option == "3":
-#             followings()
-#         elif option == "4":
-#             post()
-#         elif option == "5":
-#             logout()
-#         else:
-#             print("Opción inválida")
-#     else:
-#         print("1. Iniciar sesión")
-#         print("2. Registrarse")
-#         option = input("Ingrese una opción: ")
-#         if option == "1":
-#             login()
-#         elif option == "2":
-#             register()
-#         else:
-#             print("Opción inválida")
-
-# def login():
-    
-#     global logged_in
-#     global user
-#     username = input("Ingrese su nombre de usuario: ")
-#     password = input("Ingrese su contraseña: ")
-
-#     ###########################################################################################
-#     # Verificar si el usuario y contraseña son correctos
-#     # Si son correctos, asignar el usuario a la variable user y cambiar logged_in a True
-#     # Si no son correctos, imprimir un mensaje de error
-
-#     logged_in = True
-#     user = User(username, password, " ") #######
-
-# def register():
-    
-#     global logged_in
-#     global user
-#     username = input("Ingrese su nombre de usuario: ")
-#     password = input("Ingrese su contraseña: ")
-#     email = input("Ingrese su correo electrónico: ")
-
-#     ###########################################################################################
-#     # Crear un nuevo usuario con los datos ingresados
-#     # Asignar el usuario a la variable user y cambiar logged_in a True
-
-#     logged_in = True
-#     user = User(username, password, email) ########
-
-# def profile():
-#     ##################################
-#     # Extraer publicaciones hechas por el usuario
-
-#     pass
-
-
-# def followings():
-    
-#     ##################################
-#     # Extraer usuarios seguidos por el usuario
-
-#     pass
-
-# def followers():
-    
-#     ##################################
-#     # Extraer seguidores del usuario
-
-#     pass
-
-# def post():
-#     ##################################
-#     # Crear una nueva publicación
-
-#     pass
-
-# def logout():
-    
-#     global logged_in
-#     global user
-#     logged_in = False
-#     user = None
-
-#     home()
-
-# endregion
-
-########################################################################
-
-# import os
-# from colorama import init, Fore, Back, Style
-
-# init(autoreset=True)
-
-# logged_in = False
-# user = None
-
-# def clear_screen():
-#     os.system('cls' if os.name == 'nt' else 'clear')
-
-# def print_header():
-#     print(Fore.CYAN + "=" * 50)
-#     print(Fore.YELLOW + "        BIENVENIDO A NUESTRA RED SOCIAL        ")
-#     print(Fore.CYAN + "=" * 50)
-
-# def print_footer():
-#     print(Fore.CYAN + "=" * 50)
-#     print(Fore.YELLOW + "          GRACIAS POR USAR NUESTRA APP    ")
-#     print(Fore.CYAN + "=" * 50)
-
-# def print_menu(options):
-#     for i, option in enumerate(options, 1):
-#         print(f"{Fore.GREEN}{i}. {Fore.WHITE}{option}")
-
-# def get_user_choice(options):
-#     while True:
-#         try:
-#             choice = int(input(Fore.YELLOW + "\nIngrese una opción: "))
-#             if 1 <= choice <= len(options):
-#                 return choice
-#             else:
-#                 print(Fore.RED + "Opción inválida. Intente de nuevo.")
-#         except ValueError:
-#             print(Fore.RED + "Por favor, ingrese un número válido.")
-
-# def home():
-#     clear_screen()
-#     print_header()
-    
-#     if logged_in:
-#         print(Fore.CYAN + f"\nBienvenido, {user.username}!")
-#         options = ["Ver perfil", "Ver seguidores", "Ver seguidos", "Publicar", "Cerrar sesión"]
-#         print_menu(options)
-#         choice = get_user_choice(options)
-        
-#         actions = [profile, followers, followings, post, logout]
-#         actions[choice - 1]()
-#     else:
-#         options = ["Iniciar sesión", "Registrarse"]
-#         print_menu(options)
-#         choice = get_user_choice(options)
-        
-#         actions = [login, register]
-#         actions[choice - 1]()
-    
-#     print_footer()
-
-
-# def login():
-#     global logged_in
-#     global user
-#     username = input(Fore.YELLOW + "Ingrese su nombre de usuario: ")
-#     verify_back(username) #
-#     password = input("Ingrese su contraseña: ")
-#     verify_back(password) #
-    
-#     # Verificar si el usuario y contraseña son correctos
-#     # Si son correctos, asignar el usuario a la variable user y cambiar logged_in a True
-#     # Si no son correctos, imprimir un mensaje de error
-
-#     if verify_user(username, password):
-#         logged_in = True
-
-#     #user = User(username, password, " ")
-
-# def register():
-#     global logged_in
-#     global user
-#     username = input(Fore.YELLOW + "Ingrese su nombre de usuario: ")
-#     verify_back(username) #
-#     password = input("Ingrese su contraseña: ")
-#     verify_back(password) #
-#     email = input("Ingrese su correo electrónico: ")
-#     verify_back(email) #
-    
-#     # Crear un nuevo usuario con los datos ingresados
-#     # Asignar el usuario a la variable user y cambiar logged_in a True
-#     logged_in = True
-#     #user = User(username, password, email)
-
-# def profile():
-#     # Extraer publicaciones hechas por el usuario
-#     pass
-
-# def followings():
-#     # Extraer usuarios seguidos por el usuario
-#     pass
-
-# def followers():
-#     # Extraer seguidores del usuario
-#     pass
-
-# def post():
-#     # Crear una nueva publicación
-#     pass
-
-# def logout():
-#     global logged_in
-#     global user
-#     logged_in = False
-#     user = None
-
-# def verify_back( option ):
-#     if option == "b":
-#         home()
-#     else:
-#         return
-
-
-
-# if __name__ == "__main__":
-#     while True:
-#         home()
-
-
-
-
-###############################################NEW VERSION WEB
-
+import json
 import os
 from classes import *
-
+from chord.chord import ChordNode
+from datetime import datetime
+import bcrypt
 
 
 class Session:
-    def __init__(self, client_socket):
+    def __init__(self, client_socket, twitter_socket):
         self.client_socket = client_socket
+        self.twitter_socket = twitter_socket ###########################################################
         self.logged_in = False
         self.user = None
 
@@ -294,57 +59,100 @@ class Session:
         
         self.client_socket.send(("          GRACIAS POR USAR NUESTRA APP    ").encode())
 
-    def login(self):
+    def send_request(self, request):
+        #enviar el socket.getpeername()[1] para saber a quien enviar la respuesta
+        self.twitter_socket.send(json.dumps(request).encode('utf-8'))
+        response = self.twitter_socket.recv(1024).decode('utf-8')
+        return json.loads(response)
 
+    def login(self):
         self.client_socket.send("Ingrese su nombre de usuario: ".encode())
         username = self.client_socket.recv(1024).decode()
         self.verify_back(username) #
         self.client_socket.send("Ingrese su contraseña: ".encode())
         password = self.client_socket.recv(1024).decode()
         self.verify_back(password) #
-        
-        # Verificar si el usuario y contraseña son correctos
-        # Si son correctos, asignar el usuario a la variable user y cambiar logged_in a True
-        # Si no son correctos, imprimir un mensaje de error
 
-        if self.verify_user(username, password):
+        request = {
+            'action': 'login',
+            'username': username,
+            'password': password
+        }
+        response = self.send_request(request)
+        if response == 'success':
             self.logged_in = True
-
-        #user = User(username, password, " ")
+            self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
+        
+        elif response == "incorrect_password":
+            self.client_socket.send("La contraseña es incorrecta".encode())
+        else:
+            self.client_socket.send("El usuario no existe".encode())
+        self.home()
+        self.user = User(username, password, " ")
 
     def register(self):
+        succesful_register = False
+        while(not succesful_register):
+            self.client_socket.send("Ingrese su nombre de usuario: ".encode())
+            username = self.client_socket.recv(1024).decode()
+            self.verify_back(username) #
+            self.client_socket.send("Ingrese su contraseña: ".encode())
+            password = self.client_socket.recv(1024).decode()
+            self.verify_back(password) #
 
-        self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-        username = self.client_socket.recv(1024).decode()
-        self.verify_back(username) #
-        self.client_socket.send("Ingrese su contraseña: ".encode())
-        password = self.client_socket.recv(1024).decode()
-        self.verify_back(password) #
+            self.client_socket.send("Ingrese su correo electrónico: ".encode())
+            email = self.client_socket.recv(1024).decode()
+            self.verify_back(email) #
+            
+            # Crear un nuevo usuario con los datos ingresados
+            request = {
+                'type': 'operator',
+                'action': 'register',
+                'data': {
+                    'username': username,
+                    'password': password,
+                    'email': email
+                }
+            }
 
-        self.client_socket.send("Ingrese su correo electrónico: ".encode())
-        email = self.client_socket.recv(1024).decode()
-        self.verify_back(email) #
+            response = self.send_request(request)
+            if response == 'success':
+                self.logged_in = True
+                self.client_socket.send(f"Bienvenido {username}.".encode())
+            elif response == 'user_already_exists':
+                self.client_socket.send(f"El nombre de usuario {username} ya existe".encode())
+            elif response == 'password_needed':
+                self.client_socket.send("Es necesario que provea una contraseña".encode())
+            elif response == 'email_needed':
+                self.client_socket.send("Es necesario que provea una dirección de email".encode())
         
-        # Crear un nuevo usuario con los datos ingresados
         # Asignar el usuario a la variable user y cambiar logged_in a True
         self.logged_in = True
-        #user = User(username, password, email)
+        user = User(username, password, email)
+        self.user = user
 
-    def profile(self):
-        # Extraer publicaciones hechas por el usuario
-        pass
+    def display_profile(self, username: str):
+        """
+        Show user's posts.
+        
+        :param username: The name of the user whose posts we want to display.
+        """
+        posts = self.profile(username)
+        
+        if not posts:
+            print(f"El usuario @{username} no tiene publicaciones.")
+            return
 
-    def followings(self):
-        # Extraer usuarios seguidos por el usuario
-        pass
-
-    def followers(self):
-        # Extraer seguidores del usuario
-        pass
-
-    def post(self):
-        # Crear una nueva publicación
-        pass
+        print(f"Publicaciones de @{username}:")
+        for post in posts:
+            if post['type'] == 'tweet':
+                print(f"Tweet - {post['created_at']}:")
+                print(f"  {post['content']}")
+            elif post['type'] == 'retweet':
+                print(f"Retweet de @{post['original_user']} - {post['retweeted_at']}:")
+                print(f"  (Original creado en {post['created_at']})")
+            print("-" * 40)
+        
 
     def logout(self):
         self.logged_in = False
@@ -355,3 +163,7 @@ class Session:
             self.home()
         else:
             return
+        
+    def recieve_request(data):##############
+        pass
+
