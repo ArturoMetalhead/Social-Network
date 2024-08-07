@@ -21,6 +21,7 @@ class Client_Manager:
     def start_client(self):
 
         self.client.connect(self.current_server)
+        self.client.send(json.dumps({"type": "client"}).encode())
 
         self.discover_thread = threading.Thread(target=self.discover_operators)
         self.discover_flag=True

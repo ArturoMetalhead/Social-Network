@@ -1,10 +1,10 @@
 from server import *
 import threading
 
-operators = [('localhost', 8080)]
+operators = []
 twitter_servers = [('localhost', 8083), ('localhost', 8084), ('localhost', 8085)]
 
-operators2 = [('localhost', 8081), ('localhost', 8080)]
+operators2 = [('localhost', 8080)]
 
 
 def main():

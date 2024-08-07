@@ -113,7 +113,7 @@ class Server_Manager:
                     time.sleep(1)
                     operator_socket.send(json.dumps({"action": "get_operators","type":"none"}).encode())
                     print("hice 3")
-                    operator_socket.close
+                    #operator_socket.close
 
                 except:
                     pass
