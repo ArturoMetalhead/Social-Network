@@ -8,7 +8,7 @@ class Operator_Server():
     def __init__(self, operators=[], twitter_servers=[], ip='localhost', port=0):
 
         # Configuración de puertos
-        id_type_server = 1
+        id_type_server = 2
         #ID = 1
         # PORT_LISTEN = 11000 + id_type_server
         # PORT_BR = 12000 + id_type_server
@@ -37,7 +37,7 @@ class Operator_Server():
 
     def start_operator_server(self):
 
-        self.discover_thread = threading.Thread(target=self.discover_operators)
+        self.discover_thread = threading.Thread(target=self.discover_operator)
         self.discover_thread.start()
 
         self.listen_discovery_thread = threading.Thread(target=self.listen_for_discovery)
@@ -100,7 +100,7 @@ class Operator_Server():
 
     #region Discovery
 
-    def discover_operators(self):
+    def discover_operator(self):
         while not self.stop_threads:
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
