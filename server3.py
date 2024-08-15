@@ -27,7 +27,10 @@ class Operator_Server():
         self.listen_discovery_thread = None
         self.stop_threads = False
 
-        operators.append((ip, port)) # Agregar el propio servidor a la lista de operadores
+        self.twitter_server_connected = False
+        self.twitter_server_socket = None
+
+        operators.append((self.operator_ip, self.operator_port)) # Agregar el propio servidor a la lista de operadores
         self.registered_operators = operators
         #self.registered_operators_connected = {op: False for op in self.registered_operators}
 
@@ -39,6 +42,8 @@ class Operator_Server():
 
         self.listen_discovery_thread = threading.Thread(target=self.listen_for_discovery)
         self.listen_discovery_thread.start()
+
+        #while not self.twitter_server_connected:
         
         self.operator.listen()
         print(f"[*] Listening on {self.operator.getsockname()}")
@@ -82,7 +87,7 @@ class Operator_Server():
         try:
             print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
 
-            session = Session(client_socket)
+            session = Session(client_socket,self.twitter_server_socket)####
             #self.sessions[client_socket.getpeername()[1]] = session##########
 
             session.home()
@@ -93,6 +98,7 @@ class Operator_Server():
         finally:
             client_socket.close()
 
+    #region Discovery
 
     def discover_operators(self):
         while not self.stop_threads:
@@ -148,3 +154,5 @@ class Operator_Server():
                             print(f"Discovered operator: {ip}:{port}")
                 except Exception as e:
                     print(f"Error in listen_for_discovery: {e}")
+    
+    #endregion

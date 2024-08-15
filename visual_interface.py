@@ -78,7 +78,9 @@ class Session:
             'username': username,
             'password': password
         }
+
         response = self.send_request(request)
+        
         if response == 'success':
             self.logged_in = True
             self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
