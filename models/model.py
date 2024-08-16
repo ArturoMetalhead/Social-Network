@@ -1,6 +1,5 @@
 from peewee import *
 
-
 try:
     db = SqliteDatabase('database.db')
     db.connect()
@@ -36,9 +35,4 @@ class Follow(Model):
     class Meta:
         database = db
 
-def initialize_db(node):
-    db.init(f'node_{node.id}.db')
-    db.connect()
-    db.create_tables([User, Tweet, Retweet, Follow])
-
-
+db.create_tables([User, Tweet, Retweet, Follow])
