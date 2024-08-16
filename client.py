@@ -47,20 +47,14 @@ class Client_Manager:
             #ready = select.select([self.client], [], [], 30)######??????
             #if ready[0]:
                 try:
-                    request = json.loads(self.client.recv(1024).decode())
-                    print(request)
+                    print(self.client.recv(1024).decode())#####
+                    #request = json.loads(self.client.recv(1024).decode())
 
-                    if request['action'] == 'get_operators_request':
-                        # self.operators = json.loads(request['data'])
-                        # print("Received operators list.")
-                        # break
-                        pass
-                    else:
-                        # Handle other types of requests here
-                        print(request["data"])
-                        message = input(">> ")
-                        message = json.dumps({"action": "message", "data": message})
-                        self.client.send(message.encode())
+                    # Handle other types of requests here
+                    #print(request["data"])
+                    message = input(">> ")
+                    message = json.dumps({"action": "message", "data": message})
+                    self.client.send(message.encode())
 
                 except json.JSONDecodeError:
                     print("Received invalid JSON data.")

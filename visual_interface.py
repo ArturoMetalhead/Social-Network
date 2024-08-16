@@ -22,7 +22,11 @@ class Session:
     def get_user_choice(self,options):
         while True:
             try:
-                choice=int(self.client_socket.recv(1024).decode())
+                request = json.loads(self.client_socket.recv(1024).decode())#######################
+                #print(self.client_socket.recv(1024).decode())####
+                #choice=int(self.client_socket.recv(1024).decode())
+                choice=int(request["data"])############
+
                 if 1 <= choice <= len(options):
                     return choice
                 else:
@@ -67,10 +71,13 @@ class Session:
 
     def login(self):
         self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-        username = self.client_socket.recv(1024).decode()
+        username= json.loads(self.client_socket.recv(1024).decode())["data"]
+        #username = self.client_socket.recv(1024).decode()
         self.verify_back(username) #
+
         self.client_socket.send("Ingrese su contraseña: ".encode())
-        password = self.client_socket.recv(1024).decode()
+        password=json.loads(self.client_socket.recv(1024).decode())["data"]
+        #password = self.client_socket.recv(1024).decode()
         self.verify_back(password) #
 
         request = {
