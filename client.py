@@ -36,6 +36,7 @@ class Client_Manager:
         self.client.send(json.dumps({"type": "client"}).encode())
 
         self.discover_thread = threading.Thread(target=self.listen_for_discovery)
+        self.stop_threads = False
         self.discover_flag=True
         self.discover_thread.start()
 
@@ -43,10 +44,11 @@ class Client_Manager:
 
             #establecer un timer que si pasa de 30 segundos pase a conectarse a otro servidor
 
-            ready = select.select([self.client], [], [], 30)######??????
-            if ready[0]:
+            #ready = select.select([self.client], [], [], 30)######??????
+            #if ready[0]:
                 try:
                     request = json.loads(self.client.recv(1024).decode())
+                    print(request)
 
                     if request['action'] == 'get_operators_request':
                         # self.operators = json.loads(request['data'])
@@ -67,11 +69,11 @@ class Client_Manager:
                     if not self.switch_server():
                         print("No available servers to connect. Exiting.")
                         return
-            else:
-                print("No response from server for 30 seconds. Switching to another server.")
-                if not self.switch_server():
-                    print("No available servers to connect. Exiting.")
-                    return
+            #else:
+                # print("No response from server for 30 seconds. Switching to another server.")
+                # if not self.switch_server():
+                #     print("No available servers to connect. Exiting.")
+                #     return
 
     def connect_to_server(self, ip, port):###ip separado de port?
         try:
@@ -132,6 +134,7 @@ class Client_Manager:
             
 
     def stop_client(self):
+        self.stop_threads = True
         self.discover_flag=False
         self.discover_thread.join()
         self.discover_thread = None
