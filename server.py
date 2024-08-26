@@ -5,7 +5,7 @@ import threading
 from visual_interface import *
 
 class Operator_Server():
-    def __init__(self, operators=[], twitter_servers=[], ip='localhost', port=0):
+    def __init__(self,twitter_servers=[], ip='localhost', port=0):
 
         # Configuración de puertos
         id_type_server = 1
@@ -28,11 +28,9 @@ class Operator_Server():
         self.stop_threads = False
 
         self.twitter_server_connected = False
-        self.twitter_server_socket = None
+        self.twitter_server_socket = None###############################################
 
-        operators.append((self.operator_ip, self.operator_port)) # Agregar el propio servidor a la lista de operadores
-        self.registered_operators = operators
-        #self.registered_operators_connected = {op: False for op in self.registered_operators}
+        self.registered_twitter_servers = twitter_servers
 
 
     def start_operator_server(self):
@@ -87,7 +85,7 @@ class Operator_Server():
         try:
             print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
 
-            session = Session(client_socket,self.twitter_server_socket)####
+            session = Session(client_socket,self.twitter_server_socket)####VOY A TENER QUE USAR VARIOS TWITTERSOCKET PARA QUE NO SE HAGA UN CUELLO DE BOTELLA
             #self.sessions[client_socket.getpeername()[1]] = session##########
 
             session.home()
@@ -112,24 +110,6 @@ class Operator_Server():
                 print(f"Error sending discovery message: {e}")
             time.sleep(5)
 
-
-    # def listen_for_discovery(self):  ######deberia hacer un hilo con cada solicitud de operador
-    #     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-    #         sock.bind(('', self.discovery_port))
-
-    #         while not self.stop_threads:
-
-    #             data, addr = sock.recvfrom(1024)
-    #             message = json.loads(data.decode())
-    #             if message['type'] == 'discovery':
-
-    #                 ip= message['ip']
-    #                 port = message['port']
-
-    #                 if (ip, port) not in self.registered_operators:
-    #                     self.registered_operators.append((ip, port))
-    #                     print(f"Discovered operator: {ip}:{port}")
-
     def listen_for_discovery(self):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             # Permite reutilizar la dirección y el puerto
@@ -149,8 +129,8 @@ class Operator_Server():
                         ip = message['ip']
                         port = message['port']
 
-                        if (ip, port) not in self.registered_operators:
-                            self.registered_operators.append((ip, port))
+                        if (ip, port) not in self.registered_twitter_servers:
+                            self.registered_twitter_servers.append((ip, port))
                             print(f"Discovered Twitter Server: {ip}:{port}")
                 except Exception as e:
                     print(f"Error in listen_for_discovery: {e}")

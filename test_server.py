@@ -2,19 +2,19 @@ from server import *
 import threading
 
 #operators = []
-operators=[]
+#operators=[]
 twitter_servers = [('localhost', 8083), ('localhost', 8084), ('localhost', 8085)]
 
 #operators2 = [('localhost', 8080)]
 #operators2=[('localhost', 5000)]
-operators2=[]
+#operators2=[]
 
 
 def main():
 
     # servers=['127.0.0.1:4041','127.0.0.2:4042']
-    server_manager = Operator_Server(operators,twitter_servers,'127.0.0.1',8080) ####el agrega el ip como localhost de otra manera y lo guardara 2 veces como 127.0.0.1 y como localhost
-    server_manager2 = Operator_Server(operators2,twitter_servers,'127.0.0.2',8081)
+    server_manager = Operator_Server(twitter_servers,'127.0.0.1',8080) ####el agrega el ip como localhost de otra manera y lo guardara 2 veces como 127.0.0.1 y como localhost
+    server_manager2 = Operator_Server(twitter_servers,'127.0.0.2',8081)
 
     T1=threading.Thread(target=server_manager.start_operator_server)
     T2=threading.Thread(target=server_manager2.start_operator_server)

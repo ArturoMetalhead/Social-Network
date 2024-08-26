@@ -81,6 +81,7 @@ class Session:
         self.verify_back(password) #
 
         request = {
+            'type': 'operator',
             'action': 'login',
             'username': username,
             'password': password
@@ -105,7 +106,7 @@ class Session:
             self.client_socket.send("Ingrese su nombre de usuario: ".encode())
             username = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(username) #
-            
+
             self.client_socket.send("Ingrese su contraseña: ".encode())
             password = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(password) #
@@ -118,11 +119,9 @@ class Session:
             request = {
                 'type': 'operator',
                 'action': 'register',
-                'data': {
-                    'username': username,
-                    'password': password,
-                    'email': email
-                }
+                'username': username,
+                'password': password,
+                'email': email
             }
 
             response = self.send_request(request)

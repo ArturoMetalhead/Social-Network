@@ -6,7 +6,7 @@ import json
 import time
 
 class Twitter_Server():
-    def __init__(self, twitter_servers=[],chord_node=None,ip='localhost',port=0):#######
+    def __init__(self,chord_node=None,ip='localhost',port=0):#######
 
 
         id_type_server = 2
@@ -25,8 +25,7 @@ class Twitter_Server():
 
         self.chord_node = chord_node
 
-        twitter_servers.append((self.twitter_server_ip, self.twitter_server_port))
-        self.registered_twitter_servers = twitter_servers
+        self.registered_twitter_servers = [] ######No tendria sentido
         self.sessions = {}
 
     def start_server(self):
@@ -57,6 +56,39 @@ class Twitter_Server():
                 session_handler = threading.Thread(target=self.handle_session, args=(client,))
                 self.thread_dict[addr[1]] = session_handler
                 session_handler.start()
+
+    def handle_session(self, client):
+
+        while not self.stop_threads:
+            try:
+                request = json.loads(client.recv(1024).decode())
+                print(f"[*] Received request: {request}")
+
+                if request['action'] == 'login':
+                    username = request['username']
+                    password = request['password']
+                    #response = self.login(username, password)
+                    response = 'success'#####################################
+                    client.send(json.dumps(response).encode())
+
+                elif request['action'] == 'register':
+                    username = request['username']
+                    password = request['password']
+                    email = request['email']
+                    response = 'success'#####################################
+                    #response = self.register(username, password, email)
+                    client.send(json.dumps(response).encode())
+
+                elif request['action'] == 'logout':  ######
+                    self.sessions.pop(client.getpeername()[1])
+                    client.close()
+                    break
+
+            except Exception as e:
+                print(f"Error handling session: {e}")
+                break
+
+
 
 
     #region Discovery
