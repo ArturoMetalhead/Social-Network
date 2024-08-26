@@ -103,14 +103,15 @@ class Session:
         succesful_register = False
         while(not succesful_register):
             self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-            username = self.client_socket.recv(1024).decode()
+            username = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(username) #
+            
             self.client_socket.send("Ingrese su contraseña: ".encode())
-            password = self.client_socket.recv(1024).decode()
+            password = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(password) #
 
             self.client_socket.send("Ingrese su correo electrónico: ".encode())
-            email = self.client_socket.recv(1024).decode()
+            email = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(email) #
             
             # Crear un nuevo usuario con los datos ingresados
