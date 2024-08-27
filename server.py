@@ -28,7 +28,7 @@ class Operator_Server():
         self.stop_threads = False
 
         self.twitter_server_connected = False
-        self.twitter_server_socket = None###############################################
+        #self.twitter_server_socket = None###############################################
 
         self.registered_twitter_servers = twitter_servers
 
@@ -85,7 +85,11 @@ class Operator_Server():
         try:
             print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
 
-            session = Session(client_socket,self.twitter_server_socket)####VOY A TENER QUE USAR VARIOS TWITTERSOCKET PARA QUE NO SE HAGA UN CUELLO DE BOTELLA
+            twitter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print(f"Connecting to Twitter Server: {self.registered_twitter_servers[0]}")####
+            twitter_socket.connect(self.registered_twitter_servers[0])###############################################
+
+            session = Session(client_socket,twitter_socket)####VOY A TENER QUE USAR VARIOS TWITTERSOCKET PARA QUE NO SE HAGA UN CUELLO DE BOTELLA
             #self.sessions[client_socket.getpeername()[1]] = session##########
 
             session.home()

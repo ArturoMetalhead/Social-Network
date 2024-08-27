@@ -45,17 +45,15 @@ class Twitter_Server():
             print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
             
             request=client.recv(1024).decode()
+            request=json.loads(request)
 
-            if request['type'] == 'twitter_server':
-                server_handler = threading.Thread(target=self.handle_server, args=(client,))
-                server_handler.start()
-                self.thread_dict[addr[1]] = server_handler
-
-            else:
+            if request['type'] == 'operator':
                 self.sessions[addr[1]] = client
                 session_handler = threading.Thread(target=self.handle_session, args=(client,))
                 self.thread_dict[addr[1]] = session_handler
                 session_handler.start()
+
+                
 
     def handle_session(self, client):
 
@@ -75,7 +73,11 @@ class Twitter_Server():
                     username = request['username']
                     password = request['password']
                     email = request['email']
-                    response = 'success'#####################################
+
+                    response = {
+                        'type': 'twitter',
+                        'response':'success'
+                    }
                     #response = self.register(username, password, email)
                     client.send(json.dumps(response).encode())
 

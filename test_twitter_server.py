@@ -15,9 +15,9 @@ def main():
     # servers=['127.0.0.1:4041','127.0.0.2:4042']
 
 
-    server_manager = Twitter_Server(chord_node)
-    server_manager2 = Twitter_Server(chord_node)
-    server_manager3 = Twitter_Server(chord_node)
+    server_manager = Twitter_Server(chord_node,'localhost',8083)
+    server_manager2 = Twitter_Server(chord_node,'localhost',8084)
+    server_manager3 = Twitter_Server(chord_node,'localhost',8085)
 
     T1=threading.Thread(target=server_manager.start_server)
     T2=threading.Thread(target=server_manager2.start_server)

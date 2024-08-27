@@ -65,8 +65,9 @@ class Session:
 
     def send_request(self, request):
         #enviar el socket.getpeername()[1] para saber a quien enviar la respuesta
-        self.twitter_socket.send(json.dumps(request).encode('utf-8'))
-        response = self.twitter_socket.recv(1024).decode('utf-8')
+
+        self.twitter_socket.send(json.dumps(request).encode())
+        response = self.twitter_socket.recv(1024).decode()
         return json.loads(response)
 
     def login(self):
@@ -124,15 +125,16 @@ class Session:
                 'email': email
             }
 
-            response = self.send_request(request)
-            if response == 'success':
+            response = self.send_request(request)#####response['response'] == 'success'?????? no hay mejor nombre?
+
+            if response['response'] == 'success':
                 self.logged_in = True
                 self.client_socket.send(f"Bienvenido {username}.".encode())
-            elif response == 'user_already_exists':
+            elif response['response']  == 'user_already_exists':
                 self.client_socket.send(f"El nombre de usuario {username} ya existe".encode())
-            elif response == 'password_needed':
+            elif response['response']  == 'password_needed':
                 self.client_socket.send("Es necesario que provea una contraseña".encode())
-            elif response == 'email_needed':
+            elif response ['response'] == 'email_needed':
                 self.client_socket.send("Es necesario que provea una dirección de email".encode())
         
         # Asignar el usuario a la variable user y cambiar logged_in a True
