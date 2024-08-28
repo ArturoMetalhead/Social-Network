@@ -43,15 +43,30 @@ class Twitter_Server():
         while not self.stop_threads:
             client, addr =self.server.accept()
             print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
-            
-            request=client.recv(1024).decode()
-            request=json.loads(request)
 
-            if request['type'] == 'operator':
-                self.sessions[addr[1]] = client
-                session_handler = threading.Thread(target=self.handle_session, args=(client,))
-                self.thread_dict[addr[1]] = session_handler
-                session_handler.start()
+
+            ######codigo alternativo########
+            
+            # request=client.recv(1024).decode()
+            # request=json.loads(request)
+
+            # print(f"[*] Received request: {request}")
+
+            # if request['type'] == 'operator':
+            #     self.sessions[addr[1]] = client
+            #     session_handler = threading.Thread(target=self.handle_session, args=(client,))
+            #     self.thread_dict[addr[1]] = session_handler
+            #     session_handler.start()
+
+            #################################
+
+            self.sessions[addr[1]] = client
+            session_handler = threading.Thread(target=self.handle_session, args=(client,))
+            self.thread_dict[addr[1]] = session_handler
+            session_handler.start()
+
+
+
 
                 
 
@@ -66,6 +81,9 @@ class Twitter_Server():
                     username = request['username']
                     password = request['password']
                     #response = self.login(username, password)
+
+                    print("Login")
+
                     response = 'success'#####################################
                     client.send(json.dumps(response).encode())
 
@@ -73,6 +91,8 @@ class Twitter_Server():
                     username = request['username']
                     password = request['password']
                     email = request['email']
+
+                    print("Register")
 
                     response = {
                         'type': 'twitter',

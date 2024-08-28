@@ -127,6 +127,8 @@ class Session:
 
             response = self.send_request(request)#####response['response'] == 'success'?????? no hay mejor nombre?
 
+            print(response['response'])#####
+
             if response['response'] == 'success':
                 self.logged_in = True
                 self.client_socket.send(f"Bienvenido {username}.".encode())
