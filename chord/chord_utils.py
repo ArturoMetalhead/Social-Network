@@ -1,4 +1,10 @@
 from threading import Lock
+from socket import gethostbyname ,gethostname
+
+def get_my_ip():
+    hostname = gethostname()
+    ip = gethostbyname(hostname)
+    return ip
 
 def gen_int_numbers():
     """
