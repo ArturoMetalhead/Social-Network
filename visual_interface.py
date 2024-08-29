@@ -13,7 +13,7 @@ class Session:
         self.logged_in = False
         self.user = None
 
-    def stop(self):
+    def stop(self):###############3agragar cosas para detener los procesos de por medio
 
         self.client_socket.send("You are offline".encode())####
 
@@ -73,9 +73,14 @@ class Session:
     def send_request(self, request):
         #enviar el socket.getpeername()[1] para saber a quien enviar la respuesta
 
-        self.twitter_socket.send(json.dumps(request).encode())
-        response = self.twitter_socket.recv(1024).decode()
-        return json.loads(response)
+        try:
+            self.twitter_socket.send(json.dumps(request).encode())
+            response = self.twitter_socket.recv(1024).decode()
+            return json.loads(response)
+        
+        except Exception as e:
+            print(f"Error sending request: {e}")
+            return None
 
     def login(self):
         self.client_socket.send("Ingrese su nombre de usuario: ".encode())

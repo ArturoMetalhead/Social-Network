@@ -90,7 +90,7 @@ class Operator_Server():
         
         self.stop_threads = True
         self.operator.close()
-        
+
         for session in self.sessions:
             session.stop()
 
