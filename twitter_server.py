@@ -35,8 +35,8 @@ class Twitter_Server():
         self.discover_thread = threading.Thread(target=self.discover_twitter_servers)
         self.discover_thread.start()
 
-        self.listen_discovery_thread = threading.Thread(target=self.listen_for_discovery)
-        self.listen_discovery_thread.start()
+        # self.listen_discovery_thread = threading.Thread(target=self.listen_for_discovery)
+        # self.listen_discovery_thread.start()
 
         print(f"[*] Listening on {self.server.getsockname()}")
 

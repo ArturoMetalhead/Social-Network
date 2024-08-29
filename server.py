@@ -133,9 +133,22 @@ class Operator_Server():
                         ip = message['ip']
                         port = message['port']
 
+
+
+
+                        ################################
+
+                        # print(f"{self.operator_ip}:{self.operator_port} {self.registered_twitter_servers}")
+                        # if(self.operator_port == 8081):
+                        #     continue
+
+
                         if (ip, port) not in self.registered_twitter_servers:
                             self.registered_twitter_servers.append((ip, port))
-                            print(f"Discovered Twitter Server: {ip}:{port}")
+                            #print(f"Discovered Twitter Server: {ip}:{port}")
+                            print(f"{self.operator_ip}:{self.operator_port} Discovered Twitter Server: {ip}:{port}")
+
+
                 except Exception as e:
                     print(f"Error in listen_for_discovery: {e}")
     
