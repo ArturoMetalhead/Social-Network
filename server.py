@@ -9,26 +9,28 @@ class Operator_Server():
 
         # Configuración de puertos
         id_type_server = 1
-        #ID = 1
-        # PORT_LISTEN = 11000 + id_type_server
-        # PORT_BR = 12000 + id_type_server
-
         self.discovery_port = 11000 + id_type_server
 
-        # Socket TCP para escuchar conexiones de operadores y clientes
+        # Socket TCP para escuchar conexiones de clientes
         self.operator = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.operator.bind((ip, port))
         self.operator_ip = self.operator.getsockname()[0]
         self.operator_port = self.operator.getsockname()[1]
 
-        # Socket UDP para descubrimiento
+        # Hilos en proceso y flag para detenerlos 
 
         self.discover_thread = None
         self.listen_discovery_thread = None
+
         self.stop_threads = False
 
         self.twitter_server_connected = False
-        #self.twitter_server_socket = None###############################################
+
+        # Diccionario de sesiones
+
+        self.sessions = {}
+
+        # Lista de servidores de Twitter registrados
 
         self.registered_twitter_servers = twitter_servers
 
@@ -54,10 +56,7 @@ class Operator_Server():
                     request = client.recv(1024).decode()
                     request = json.loads(request)
                     
-                    if request['type'] == 'operator':#############
-                        operator_handler = threading.Thread(target=self.handle_operator, args=(client,))
-                        operator_handler.start()
-                    elif request['type'] == 'client':
+                    if request['type'] == 'client':
                         client_handler = threading.Thread(target=self.handle_client, args=(client,))
                         client_handler.start()
                 except Exception as e:
@@ -69,18 +68,6 @@ class Operator_Server():
                 print(f"Error in main loop: {e}")
 
 
-    ########################################################No tendria sentido
-    def handle_operator(self, client):
-        try:
-            message = json.dumps({'type': 'operator_request', 'data': self.registered_operators}).encode()
-            client.send(message)
-            print(f"Sending operator_request to {client.getpeername()}")
-
-        except Exception as e:
-            print(f"Error sending operator_request to {client.getpeername()}: {e}")
-
-    ######################################################
-
     def handle_client(self, client_socket):
         try:
             print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
@@ -89,16 +76,23 @@ class Operator_Server():
             print(f"Connecting to Twitter Server: {self.registered_twitter_servers[0]}")####
             twitter_socket.connect(self.registered_twitter_servers[0])###############################################
 
-            session = Session(client_socket,twitter_socket)####VOY A TENER QUE USAR VARIOS TWITTERSOCKET PARA QUE NO SE HAGA UN CUELLO DE BOTELLA
-            #self.sessions[client_socket.getpeername()[1]] = session##########
+            session = Session(client_socket,twitter_socket)
+            self.sessions[session] = session##########
 
             session.home()
 
-            # Close connection
-            # self.thread_dict.pop(client_socket.getpeername()[1])
-            # self.sessions.pop(client_socket.getpeername()[1])##########
         finally:
+            self.sessions.pop(session)
             client_socket.close()
+
+
+    def stop_server(self):
+        
+        self.stop_threads = True
+        self.operator.close()
+        
+        for session in self.sessions:
+            session.stop()
 
     #region Discovery
 

@@ -22,6 +22,12 @@ def main():
     T1.start()
     T2.start()
 
+    #dormir por 30 segundos
+    time.sleep(30)
+    server_manager.stop_server()
+    time.sleep(30)
+    server_manager2.stop_server()
+
 
 
 

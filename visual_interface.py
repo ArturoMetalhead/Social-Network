@@ -13,6 +13,13 @@ class Session:
         self.logged_in = False
         self.user = None
 
+    def stop(self):
+
+        self.client_socket.send("You are offline".encode())####
+
+        self.client_socket.close()#####
+        self.twitter_socket.close()####
+
     def print_menu(self,options):
         response = ""
         for i, option in enumerate(options, 1):
