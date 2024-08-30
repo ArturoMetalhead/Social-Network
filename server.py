@@ -71,20 +71,43 @@ class Operator_Server():
 
 
     def handle_client(self, client_socket):
+
+        connected=False
+
         try:
-            print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
+            print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}") ######
 
             twitter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print(f"Connecting to Twitter Server: {self.registered_twitter_servers[0]}")####
-            twitter_socket.connect(self.registered_twitter_servers[0])###############################################
+            
+            for twitter_server in self.registered_twitter_servers:
+                try:
+                    print(f"Trying to connect to Twitter Server: {twitter_server}")####
+                    twitter_socket.connect(twitter_server)
+                    connected=True
+                    break
+                except Exception as e:
+                    pass
 
-            session = Session(client_socket,twitter_socket)
-            self.sessions[session] = session##########
+            if not connected:
+                client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())
+                return
 
-            session.home()
+            print(f"Connected")####
+            #twitter_socket.connect(self.registered_twitter_servers[0])###############################################
+
+            try:
+
+                session = Session(client_socket,twitter_socket)
+                self.sessions[session] = session##########
+
+                session.home()
+            except Exception as e:
+                print(f"Error handling session")
+
 
         finally:
-            self.sessions.pop(session)
+            if connected:
+                self.sessions.pop(session)
             client_socket.close()
 
 
