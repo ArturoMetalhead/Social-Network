@@ -75,8 +75,6 @@ class Twitter_Server():
         while not self.stop_threads:
             try:
 
-                print ("ja")
-
                 request = client.recv(1024).decode()
                 print(request)
                 request = json.loads(request)
@@ -90,7 +88,11 @@ class Twitter_Server():
 
                     print("Login")
 
-                    response = 'success'#####################################
+                    response = {
+                        'type': 'twitter',
+                        'response':'success'
+                    }
+                    
                     client.send(json.dumps(response).encode())
 
                 elif request['action'] == 'register':
@@ -106,16 +108,12 @@ class Twitter_Server():
                     }
                     #response = self.register(username, password, email)
 
-                    print("ja2")
                     client.send(json.dumps(response).encode())
-                    print("ja3")
 
                 elif request['action'] == 'logout':  ######
                     self.sessions.pop(client.getpeername()[1])
                     client.close()
                     break
-
-                print("ja4")
 
             except socket.timeout:
                 continue
@@ -124,7 +122,6 @@ class Twitter_Server():
                 print(f"Error handling session: {e}")
                 break
 
-            print("ja5")
 
 
 

@@ -93,35 +93,41 @@ class Session:
             return None
 
     def login(self):
-        self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-        username= json.loads(self.client_socket.recv(1024).decode())["data"]
-        #username = self.client_socket.recv(1024).decode()
-        self.verify_back(username) #
 
-        self.client_socket.send("Ingrese su contraseña: ".encode())
-        password=json.loads(self.client_socket.recv(1024).decode())["data"]
-        #password = self.client_socket.recv(1024).decode()
-        self.verify_back(password) #
+        succesful_login = False
+        while(not succesful_login):
 
-        request = {
-            'type': 'operator',
-            'action': 'login',
-            'username': username,
-            'password': password
-        }
+            self.client_socket.send("Ingrese su nombre de usuario: ".encode())
+            username= json.loads(self.client_socket.recv(1024).decode())["data"]
+            #username = self.client_socket.recv(1024).decode()
+            self.verify_back(username) #
 
-        response = self.send_request(request)
-        
-        if response == 'success':
-            self.logged_in = True
-            self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
-        
-        elif response == "incorrect_password":
-            self.client_socket.send("La contraseña es incorrecta".encode())
-        else:
-            self.client_socket.send("El usuario no existe".encode())
-        self.home()
-        self.user = User(username, password, " ")
+            self.client_socket.send("Ingrese su contraseña: ".encode())
+            password=json.loads(self.client_socket.recv(1024).decode())["data"]
+            #password = self.client_socket.recv(1024).decode()
+            self.verify_back(password) #
+
+            request = {
+                'type': 'operator',
+                'action': 'login',
+                'username': username,
+                'password': password
+            }
+
+            response = self.send_request(request)
+            
+            if response['response'] == 'success':
+                self.logged_in = True
+                succesful_login = True
+                #self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
+            
+            elif response['response'] == "incorrect_password":
+                self.client_socket.send("La contraseña es incorrecta".encode())
+            else:
+                self.client_socket.send("El usuario no existe".encode())
+
+        user = User(username, password, "")
+        self.user = user
 
     def register(self):
         succesful_register = False
