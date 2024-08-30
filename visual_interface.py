@@ -13,6 +13,8 @@ class Session:
         self.logged_in = False
         self.user = None
 
+        self.first_time=True
+
     def stop(self):###############3agragar cosas para detener los procesos de por medio
 
         self.client_socket.send("You are offline".encode())####
@@ -43,10 +45,16 @@ class Session:
 
     def home(self):
 
-        response=("        BIENVENIDO A NUESTRA RED SOCIAL        ")
+        response = ""
+
+        if self.first_time:
+            response=("        BIENVENIDO A NUESTRA RED SOCIAL        ")
+            self.first_time=False
 
         if self.logged_in:
-            response+= (f"\nBienvenido, {self.user.username}!")
+            response+= (f"\nBienvenido, {self.user.username}!\n")
+            response+= "Seleccione una opción:\n"
+
             options = ["Ver perfil", "Ver seguidores", "Ver seguidos", "Publicar", "Cerrar sesión"]
             response+= self.print_menu(options)
 
@@ -67,6 +75,8 @@ class Session:
             
             actions = [self.login, self.register]
             actions[choice - 1]()
+
+            self.home()
         
         self.client_socket.send(("          GRACIAS POR USAR NUESTRA APP    ").encode())
 
@@ -142,8 +152,11 @@ class Session:
             print(response['response'])#####
 
             if response['response'] == 'success':
+                succesful_register = True
                 self.logged_in = True
-                self.client_socket.send(f"Bienvenido {username}.".encode())
+                #self.client_socket.send(f"Bienvenido {username}.\n Toque enter para continuar \n".encode())
+
+
             elif response['response']  == 'user_already_exists':
                 self.client_socket.send(f"El nombre de usuario {username} ya existe".encode())
             elif response['response']  == 'password_needed':

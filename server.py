@@ -60,12 +60,14 @@ class Operator_Server():
                         client_handler = threading.Thread(target=self.handle_client, args=(client,))
                         client_handler.start()
                 except Exception as e:
-                    print(f"Error handling client: {e}")
+                    if not self.stop_threads:
+                        print(f"Error handling client: {e}")
                     client.close()
             except socket.timeout:
                 continue
             except Exception as e:
-                print(f"Error in main loop: {e}")
+                if not self.stop_threads:
+                    print(f"Error in main loop: {e}")
 
 
     def handle_client(self, client_socket):
