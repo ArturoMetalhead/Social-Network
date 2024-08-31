@@ -160,7 +160,9 @@ class Operator_Server():
                         # print(f"{self.operator_ip}:{self.operator_port} {self.registered_twitter_servers}")
                         # if(self.operator_port == 8081):
                         #     continue
+                        
 
+                        #####HABRIA QUE PONER UN CANDADO AQUI PARA QUE NO REGISTRE AL MISMO TIEMPO EN QUE LO UTILICE
 
                         if (ip, port) not in self.registered_twitter_servers:
                             self.registered_twitter_servers.append((ip, port))
