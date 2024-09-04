@@ -16,8 +16,7 @@ class Client_Manager:
         self.current_server = operators[0]
         self.discover_thread = None ############
         self.discover_flag=False #############para que no se este modificando al mismo tiempo que se examina la lista al cambiar de server
-
-
+        self.lock=threading.Lock()####
 
         ###########
 
@@ -60,14 +59,16 @@ class Client_Manager:
                     print("Received invalid JSON data.")
                 except Exception as e:
                     print(f"Error receiving data: {e}")
-                    if not self.switch_server():
-                        print("No available servers to connect. Exiting.")
-                        return
-            #else:
-                # print("No response from server for 30 seconds. Switching to another server.")
-                # if not self.switch_server():
-                #     print("No available servers to connect. Exiting.")
-                #     return
+                    print("Va pal switch")########
+
+                    while not self.stop_threads:
+                        if self.switch_server():
+                            print("Switched to another server.")
+                            break
+                        print("No available servers to connect. Trying in 5 seconds.") ################AQUI DEBO PONERLE PARA QUE ESPERE A QUE HAYA NUEVOS A LOS QUE CONECTARSE EN VEZ DE DEJARLO EN El AIRE
+                        
+                        time.sleep(50)
+                    
 
     def connect_to_server(self, ip, port):###ip separado de port?
         try:
@@ -78,8 +79,10 @@ class Client_Manager:
             self.client.send(json.dumps({"type": "client"}).encode())
             print(f"Connected to server at {ip}:{port}")
 
-            self.discover_flag=True
-            self.discover_thread = threading.Thread(target=self.discover_operators)
+            # self.discover_flag=True
+            # self.discover_thread = threading.Thread(target=self.listen_for_discovery)
+            # self.discover_thread.start()
+
             return True
         
         except Exception as e:
@@ -89,14 +92,25 @@ class Client_Manager:
     
     def switch_server(self):
 
-        self.discover_flag=False
-        self.discover_thread.join()
+        # lock = threading.Lock()
 
-        available_servers = [(ip, port) for ip, port in self.registered_operators.items() if (ip, port) != self.current_server]
+        print ("A")########
+        # self.discover_flag=False
+        # self.discover_thread.join()
+        print ("B")########
+
+        with self.lock:##############################################
+            available_servers = [(ip, port) for ip, port in self.registered_operators if (ip, port) != self.current_server]
+
         if not available_servers:
+            print("C")########
+            # self.discover_flag=True#########
+            # self.discover_thread = threading.Thread(target=self.listen_for_discovery)#######
+            # self.discover_thread.start()########
+            print("D")########
             return False
         
-        new_server = random.choice(available_servers)
+        new_server = random.choice(available_servers)  ########TENGO QUE PONER PARA ELIMINAR LOS QUE NO ESTAN VIVOS
         return self.connect_to_server(*new_server)
     
 
@@ -120,11 +134,15 @@ class Client_Manager:
                         ip = message['ip']
                         port = message['port']
 
-                        if (ip, port) not in self.registered_operators:
-                            self.registered_operators.append((ip, port))
-                            print(f"Discovered operator: {ip}:{port}")
+                        with self.lock:##########################################################
+
+                            if (ip, port) not in self.registered_operators:
+                                self.registered_operators.append((ip, port))
+                                print(f"Discovered operator: {ip}:{port}")
                 except Exception as e:
                     print(f"Error in listen_for_discovery: {e}")
+
+            print("paro el listen for discovery")########
             
 
     def stop_client(self):
