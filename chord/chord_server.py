@@ -83,6 +83,7 @@ class Chord_Server():
         self.Ft: list[tuple[Chord_Node,bool]] = [None]*floor(log2(self.max_id + 1))
         self.log = []
         self.log_lock = Lock()
+        self.busy_lock = Lock()
         self.request_count = {}
         self.reps = [self.ip]
         self.state_storage = State_Storage()
@@ -90,6 +91,7 @@ class Chord_Server():
 
         # Comunication commands
         self.get_succ_req = 'get_succ_req'
+        self.get_succ_resp_cmd = 'get_succ_resp'
         self.ImYSucc_cmd = 'ImYSucc'
         self.ImYPrev_cmd = 'ImYPrev'
         self.ImYRep_cmd = 'ImYRep'
@@ -101,17 +103,18 @@ class Chord_Server():
         self.get_reps_cmd = 'get_reps'
 
         self.request_handler = {
-            self.get_succ_req: self.get_succ_req_handler,
-            self.ImYSucc_cmd: self.ImYSucc_handler,
-            self.ImYPrev_cmd: self.ImYPrev_handler,
-            self.ImYRep_cmd: self.ImYRep_handler,
-            self.outside_cmd: self.outside_handler,
-            self.confirm_cmd: self.confirm_handler,
-            self.new_rep_cmd: self.new_rep_handler,
-            self.new_succ_cmd: self.new_succ_handler,
-            self.new_prev_cmd: self.new_prev_handler,
-            self.get_reps_cmd: self.get_reps_handler
-        }###########################################################################################
+            self.get_succ_req: self.get_succ_req_handler, # implemented
+            self.get_succ_resp_cmd:self.get_succ_resp_handler, #implemented
+            self.ImYSucc_cmd: self.ImYSucc_handler, # implemented
+            self.ImYPrev_cmd: self.ImYPrev_handler, # implemented
+            self.ImYRep_cmd: self.ImYRep_handler, #implemented
+            self.outside_cmd: self.outside_handler, # implemented
+            self.confirm_cmd: self.confirm_new_prev_handler, # implemented
+            self.new_rep_cmd: self.new_rep_handler, # implemented
+            self.new_succ_cmd: self.new_succ_handler, # implemented
+            self.new_prev_cmd: self.new_prev_handler, # implemented
+            self.get_reps_cmd: self.get_reps_handler #implemented
+        }
 
         # Hex ID assigment
         if id_hex == None: 
@@ -294,22 +297,6 @@ class Chord_Server():
     
     # endregion
 
-    def create_msg(**kwargs):
-        '''
-        Create a message.
-        '''
-        kwargs['type'] = protocols.CHORD_INTERNAL
-        return json.dumps(kwargs)
-    
-    def update_log(self, entry):
-        '''
-        Update the log with an entry.
-        '''
-        with self.log_lock:
-            if entry:
-                self.log.append((entry ,str(datetime.datetime.now().time())))
-        return
-
     # region Conections and communication
     def send_til_success(self, ips, msg, req, port):
         '''
@@ -367,24 +354,42 @@ class Chord_Server():
             
     # endregion
 
+    # region Server
+
+    def create_msg(**kwargs):
+        '''
+        Create a message.
+        '''
+        kwargs['type'] = protocols.CHORD_INTERNAL
+        return json.dumps(kwargs)
+    
+    def update_log(self, entry):
+        '''
+        Update the log with an entry.
+        '''
+        with self.log_lock:
+            if entry:
+                self.log.append((entry ,str(datetime.datetime.now().time())))
+        return
+    
     def MaintainFt(self):
-        '''
-        Maintain the finger table.
-        '''
-        while(True):
-            with self.Ft_lock:
-                if not self.Ft[0][1]:
-                    self.get_reps(self.Ft[0][0])
-            for i in range(1 ,len(self.Ft)):
-                current = self.id + 2**(i - 1)
-                who, mine = self.succ_who(current ,False)
-                if not mine:
-                    current_hex = hex(current)[2:]
-                    who = self.ask_succ(who.ip_list ,current_hex ,who.as_max)
+            '''
+            Maintain the finger table.
+            '''
+            while(True):
                 with self.Ft_lock:
-                    self.Ft[i] = (who,self.ip in who.ip_list)
-            self.update_log()
-            sleep(5)
+                    if not self.Ft[0][1]:
+                        self.get_reps(self.Ft[0][0])
+                for i in range(1 ,len(self.Ft)):
+                    current = self.id + 2**(i - 1)
+                    who, mine = self.succ_who(current ,False)
+                    if not mine:
+                        current_hex = hex(current)[2:]
+                        who = self.ask_succ(who.ip_list ,current_hex ,who.as_max)
+                    with self.Ft_lock:
+                        self.Ft[i] = (who,self.ip in who.ip_list)
+                self.update_log()
+                sleep(5)
 
     def start(self):
         '''
@@ -435,6 +440,13 @@ class Chord_Server():
             request_thread.start()
     
     def handle_request(self, conn, addr):
+        '''
+        Handle a request.
+        
+        Params:
+            conn: socket -> The socket connection.
+            addr: str -> The address of the client.
+        '''
         try:
             request = conn.recv(1024)
             parsed_request = self.parse_request(request)
@@ -484,6 +496,9 @@ class Chord_Server():
 
 
     def get_some_node(self):
+        '''
+        Get some node info from the network.
+        '''
         self.update_log('starting to send for (get_some_node)')
         msg_dict = {
             'type': protocols.CHORD ,
@@ -495,6 +510,9 @@ class Chord_Server():
         return resp_dict['ip_loggers']
     
     def build_insert_response(self):
+        '''
+        Build the response to the logger.
+        '''
         msg_dict = {
             'type': protocols.CHORD ,
             'proto': protocols.NEW_LOGGER_REQUEST,
@@ -503,3 +521,244 @@ class Chord_Server():
             'chord_id': self.id_hex
         }
         return json.dumps(msg_dict)
+    
+    # endregion
+
+    # region Handlers
+    def ImYSucc_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the ImYSucc message.
+        '''
+        self.update_log('start receiving ImYSucc')
+        res_hex = msg['id_hex']
+        res_id = int(res_hex,16)
+        as_max = False
+        
+        # If the new succ is the min, I'm the max
+        if res_id < self.id:
+            res_id += self.max_id
+            res_hex = hex(res_id)[2:]
+            as_max = True
+        succ_node = None
+        with self.Ft_lock:
+            self.Ft[1] = (Chord_Node(res_id ,res_hex ,[msg['owner_ip']] ,as_max),False)
+            succ_node = self.Ft[1][0]
+        
+        self.new_Succ(succ_node)
+        socket_client.send('Ok'.encode())
+        socket_client.close()
+        self.update_log('end receiving ImYSucc')
+
+    def new_Succ(self,succ_node):
+        '''
+        Update the successor of the node.
+        '''
+        msg = Chord_Server.create_msg(cmd = self.new_succ_cmd,node = str(succ_node))
+        for rep in self.reps:
+            if rep != self.ip:                
+                self.send_soft([rep],msg,'new succ',self.port,5,have_recv=False)
+
+    def ImYPrev_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the ImYPrev message.
+        '''
+        self.update_log('start receiving ImYPrev')
+        
+        busy = None
+        with self.busy_lock:
+            busy = self.busy
+            if not self.busy:
+                self.busy = True
+        if busy:
+            socket_client.send('Busy,none'.encode()) 
+        else:
+            result = None
+            with self.Ft_lock:
+                result = self.Ft[0][0]
+            msg_id = int(msg['id_hex'],16)
+            res_id = result.id.dec
+            res_id_hex = result.id.hex
+            res_as_max = result.as_max
+
+            # Si el que se va a insertar es nuevo maximo
+            if msg_id > self.id:
+                res_id -= self.max_id
+                res_id_hex = hex(res_id)[2:]
+                res_as_max = False
+            s_res = str(Chord_Node(res_id,res_id_hex,result.ip_list,res_as_max))
+
+            # (Busy|Ok) ,id ,ip
+            msg = json.dumps(['Ok',s_res])
+            
+            socket_client.send(msg.encode()) 
+        socket_client.close()
+        
+        self.update_log('end receiving ImYPrev')
+
+    def ImYRep_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the ImYRep message.
+        '''
+        self.update_log('start receiving ImYRep')
+        busy = False
+        
+        with self.busy_lock:
+            busy = self.busy
+        if busy:
+            
+            socket_client.send('Busy,none,none'.encode())
+        else:
+            
+            prev = None
+            succ = None
+            with self.Ft_lock:
+                prev = self.Ft[0][0]
+                succ = self.Ft[1][0]
+            try:
+                if msg['owner_ip'] not in self.reps:
+                    self.reps.append(msg['owner_ip'])
+            except Exception as e:
+                print('----------')
+                print(e)
+                print(msg)
+            
+            s = json.dumps(['Ok',str(prev),str(succ),self.reps])
+            socket_client.send(s.encode())
+        socket_client.close()
+        self.update_log('end receiving ImYRep')
+
+    def get_succ_req_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the get_succ_req message.
+        '''
+        socket_client.send('Ok'.encode())
+        socket_client.close()
+        
+        self.update_log(f'start receiving get_succ_req {msg["id_hex"]}')
+
+        id = TwoBase(int(msg["id_hex"],16),msg['id_hex'])
+        self.succ(id,msg['owner_ip'] ,msg['as_max'] ,msg['req_id'])
+        self.update_log('end receiving get_succ_req')
+
+    def get_succ_resp_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the get_succ_resp message.
+        '''
+        self.update_log('start receiving get_succ_resp')
+        holder = self.state_storage.get_state(msg['req_id'])
+
+        if holder is None:
+            return
+        holder.desired_data = Chord_Node.build_from_message(msg['node'])
+        holder.hold_event.set()
+        self.state_storage.delete_state(msg['req_id'])
+        socket_client.send('Ok'.encode())
+        socket_client.close()
+        self.update_log('end rec get_succ_resp')
+
+    def outside_handler(self ,msg ,socket_client ,addr):
+        socket_client.close()
+        
+        self.update_log(f'start receiving outside_get {msg["id_hex"]}')
+        
+        holder : Thread_Holder = self.state_storage.insert_state()
+        
+        id = TwoBase(int(msg['id_hex'],16),msg['id_hex'] )
+
+        while not holder.desired_data:
+            mine = self.succ(id,self.ip ,False ,holder.id)
+            self.update_log(f'me:{str(mine)}')
+            
+            if not mine:
+                self.update_log('starting to wait')
+                
+                holder.hold_event.wait(5)
+            else:
+                holder.desired_data = Chord_Node(self.id ,self.id_hex ,self.reps ,False)
+            if not holder.desired_data:
+                self.update_log(f'failed to get succ of {msg["id_hex"]}')
+                
+        self.state_storage.delete_state(holder.id)
+        self.update_log('responding to outside')
+        
+        self.response_to_outside(holder.desired_data.ip_list,msg['req_id'])
+
+    def response_to_outside(self,ip_list,req_id):
+        
+        self.update_log('responding to outside')
+        
+        msg_dict = {
+            'type': protocols.LOGGER ,
+            'proto': protocols.CHORD_RESPONSE ,
+            'IP':ip_list,
+            'id_request':req_id
+        }
+        
+        self.send_soft(['127.0.0.1'],json.dumps(msg_dict),'outside_resp',protocols.PORT_GENERAL_LOGGER,5,have_recv = False)
+
+        self.update_log(f'end outside req')
+    
+
+    def new_rep_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the new_rep message.
+        '''
+        if msg['owner_ip'] not in self.reps:
+            self.reps.append(msg['owner_ip'])
+        socket_client.send('Ok'.encode())
+
+
+    def new_prev_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the new_prev message.
+        '''
+        new_prev = Chord_Node.build_from_message(msg['node'])
+        with self.Ft_lock:
+            self.Ft[0] = (new_prev,False)
+        socket_client.close()
+
+    def new_succ_handler(self ,msg ,socket_client ,addr):
+        '''
+        Receive the new_succ message.
+        '''
+        new_succ = Chord_Node.build_from_message(msg['node'])
+        with self.Ft_lock:
+            self.Ft[1] = (new_succ,False)
+        socket_client.close()
+
+    def get_reps_handler(self ,msg ,socket_client ,addr):
+        resp = json.dumps(self.reps)
+        socket_client.send(resp.encode())
+        socket_client.close()
+
+    def confirm_new_prev_handler(self ,msg:dict ,socket_client ,addr):
+        self.update_log('inside rec_confirm')
+        res_id_hex = msg['id_hex']
+        res_id = int(res_id_hex,16)
+        res_as_max = False
+        if res_id > self.id:
+            res_id += self.max_id
+            res_id_hex = hex(res_id)[2:]
+            res_as_max = True
+        prev_node = None
+        with self.Ft_lock:
+            self.Ft[0] = (Chord_Node(res_id ,res_id_hex ,[msg['owner_ip']] ,res_as_max),False)
+            prev_node = self.Ft[0][0]
+        
+        with self.busy_lock:
+            self.busy = False
+        
+        self.new_Prev(prev_node)
+        
+        socket_client.send('Ok'.encode())
+        socket_client.close()
+        self.update_log('confirmed new prev')
+
+    def new_Prev(self,prev_node):
+        
+        msg = Chord_Server.create_msg(cmd = self.new_prev_cmd,node = str(prev_node))
+        for rep in self.reps:
+            if rep != self.ip:
+                self.send_soft([rep],msg,'new succ',self.port,5,have_recv=False)
+
+    # endregion
