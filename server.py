@@ -59,6 +59,11 @@ class Operator_Server():
                     if request['type'] == 'client':
                         client_handler = threading.Thread(target=self.handle_client, args=(client,))
                         client_handler.start()
+                        
+                    elif request['type'] == 'alive_request':
+                        client.send(json.dumps({"type": "alive_response"}).encode())
+                        client.close()
+                        
                 except Exception as e:
                     if not self.stop_threads:
                         print(f"Error handling client: {e}")

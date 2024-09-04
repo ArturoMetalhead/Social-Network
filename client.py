@@ -13,6 +13,9 @@ class Client_Manager:
     def __init__(self,operators):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.registered_operators=operators
+        self.alive_servers=[]
+
+        self.alive_servers_thread=None
         self.current_server = operators[0]
         self.discover_thread = None ############
         self.discover_flag=False #############para que no se este modificando al mismo tiempo que se examina la lista al cambiar de server
@@ -38,6 +41,11 @@ class Client_Manager:
         self.stop_threads = False
         self.discover_flag=True
         self.discover_thread.start()
+
+        self.alive_servers_thread= threading.Thread(target=self.its_alive_server)
+        self.alive_servers_thread.start()
+
+
 
         while True:
 
@@ -100,7 +108,7 @@ class Client_Manager:
         print ("B")########
 
         with self.lock:##############################################
-            available_servers = [(ip, port) for ip, port in self.registered_operators if (ip, port) != self.current_server]
+            available_servers = [(ip, port) for ip, port in self.alive_servers if (ip, port) != self.current_server]########cambie lo de registered por alive
 
         if not available_servers:
             print("C")########
@@ -151,6 +159,42 @@ class Client_Manager:
         self.discover_thread.join()
         self.discover_thread = None
         self.client.close()
+
+    def its_alive_server(self):
+        while not self.stop_threads:
+            
+            with self.lock:
+                for operator in self.registered_operators:
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                            sock.connect(operator)
+                            sock.send(json.dumps({"type": "alive_request"}).encode())
+                            response = json.loads(sock.recv(1024).decode())
+                            if response["type"] != "alive_response":
+                                raise Exception("Invalid response")
+                            sock.close()
+
+                            print(f"Server {operator} is alive.")
+
+                            if operator not in self.alive_servers:
+                                self.alive_servers.append(operator)
+
+                    except Exception as e:
+                        print(f"Server {operator} is not alive: {e}")
+
+                        try:
+                            self.alive_servers.remove(operator)
+                            print(f"operator {operator} removed")########
+                        except ValueError:
+                            pass
+
+
+                        # self.registered_operators.remove(operator)
+                        # print(f"Removed {operator} from the list of operators.")
+                        continue
+
+                    
+            time.sleep(10)
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
