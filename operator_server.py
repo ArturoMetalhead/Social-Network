@@ -4,9 +4,10 @@ import socket
 import threading
 import random
 import select
-from visual_interface import *
+from session_interface import *
 
 class Operator_Server():
+
     def __init__(self,twitter_servers=[], ip='localhost', port=0):
 
         # Configuración de puertos
@@ -25,6 +26,8 @@ class Operator_Server():
         self.listen_discovery_thread = None
         self.alive_servers_thread=None
 
+        self.lock = threading.Lock()
+
         self.stop_threads = False
 
         self.twitter_server_connected = False
@@ -38,10 +41,6 @@ class Operator_Server():
         self.registered_twitter_servers = twitter_servers
         self.alive_servers = []
 
-        # Candado
-
-        self.lock = threading.Lock()
-
 
     def start_operator_server(self):
 
@@ -54,16 +53,12 @@ class Operator_Server():
         self.alive_servers_thread= threading.Thread(target=self.its_alive_server)
         self.alive_servers_thread.start()
 
-
-        #while not self.twitter_server_connected:
-        
         self.operator.listen()
         print(f"[*] Listening on {self.operator.getsockname()}")
 
         while not self.stop_threads:
-            try:
-                #self.operator.settimeout(1.0)
 
+            try:
                 client, addr = self.operator.accept()
                 try:
                     request = client.recv(1024).decode()
@@ -93,10 +88,7 @@ class Operator_Server():
         connected=False
 
         try:
-            print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}") ######
-
-            
-
+            print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}")
 
             while not self.stop_threads:
 
@@ -106,7 +98,7 @@ class Operator_Server():
                     
                     for twitter_server in self.alive_servers:
                         try:
-                            print(f"Trying to connect to Twitter Server: {twitter_server}")####
+                            print(f"Trying to connect to Twitter Server: {twitter_server}")
 
                             twitter_socket.connect(twitter_server)
                             twitter_socket.send(json.dumps({"type": "operator"}).encode())
@@ -118,8 +110,7 @@ class Operator_Server():
 
 
                 if not connected:
-                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())
-                    #return
+                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())######mandarlo como un tipo warning o algo asi y que el otro lado revise el tipo para poder seguir en eso
                     continue
 
                 print(f"Connected")####
@@ -130,7 +121,7 @@ class Operator_Server():
                     ####poner un booleano de si ya tenia una sesion activa y por aqui preguntar si ya estaba iniciada ponerla en home pero con un nuevo twitter socket y hacer un metodo restore
 
                     session = Session(client_socket,twitter_socket)
-                    self.sessions[session] = session##########
+                    self.sessions[session] = session
 
                     session.home()
                 except Exception as e:
@@ -162,28 +153,16 @@ class Operator_Server():
         for session in self.sessions:
             session.stop()
 
-    def switch_server(self):
+    # def switch_server(self):
 
-        # lock = threading.Lock()
+    #     with self.lock:
+    #         available_servers = [(ip, port) for ip, port in self.alive_servers if (ip, port) != self.current_server]########cambie lo de registered por alive
 
-        print ("A")########
-        # self.discover_flag=False
-        # self.discover_thread.join()
-        print ("B")########
-
-        with self.lock:##############################################
-            available_servers = [(ip, port) for ip, port in self.alive_servers if (ip, port) != self.current_server]########cambie lo de registered por alive
-
-        if not available_servers:
-            print("C")########
-            # self.discover_flag=True#########
-            # self.discover_thread = threading.Thread(target=self.listen_for_discovery)#######
-            # self.discover_thread.start()########
-            print("D")########
-            return False
+    #     if not available_servers:
+    #         return False
         
-        new_server = random.choice(available_servers)
-        return self.connect_to_server(*new_server) ###### el connect to aqui no tengo
+    #     new_server = random.choice(available_servers)
+    #     return self.connect_to_server(*new_server) ###### el connect to aqui no tengo
     
     def its_alive_server(self):
         while not self.stop_threads:
@@ -209,21 +188,14 @@ class Operator_Server():
 
                         try:
                             self.alive_servers.remove(twitter_server)
-                            print(f"operator {twitter_server} removed")########
+                            print(f"operator {twitter_server} removed")
                         except ValueError:
                             pass
 
-
-                        # self.registered_operators.remove(operator)
-                        # print(f"Removed {operator} from the list of operators.")
                         continue
 
                     
             time.sleep(10)
-
-
-
-
 
     #region Discovery
 

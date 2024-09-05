@@ -55,7 +55,7 @@ class Server_Master():
     def stop_server(self):
         self.stop_threads = True
         self.server_socket.close()
-        self.listen_discovery_thread.join()###
+        self.listen_discovery_thread.join()
 
 
     def listen_for_discovery(self):
@@ -64,7 +64,7 @@ class Server_Master():
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             
             try:
-                sock.bind(('', self.discovery_port))##############
+                sock.bind(('', self.discovery_port))
             except OSError as e:
                 print(f"Error binding to discovery port: {e}")
                 return

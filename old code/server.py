@@ -1,6 +1,6 @@
 import socket
 import threading
-from visual_interface import *
+from session_interface import *
 import json
 import time
 

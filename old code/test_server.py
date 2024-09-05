@@ -1,4 +1,4 @@
-from server import *
+from operator_server import *
 import threading
 
 operators = []

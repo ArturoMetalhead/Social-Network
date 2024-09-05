@@ -6,9 +6,9 @@ import json
 import time
 
 class Twitter_Server():
-    def __init__(self,chord_node=None,ip='localhost',port=0):#######
+    def __init__(self,chord_node=None,ip='localhost',port=0):
 
-
+        # Configuración de puertos
         id_type_server = 2
         self.discovery_port = 11000 + id_type_server
 
@@ -18,14 +18,14 @@ class Twitter_Server():
         self.twitter_server_ip = self.server.getsockname()[0]
         self.twitter_server_port = self.server.getsockname()[1]
 
+        # Hilos en proceso y flag para detenerlos
+
         self.discover_thread = None
         self.listen_discovery_thread = None
         self.stop_threads = False
         self.thread_dict={}
 
         self.chord_node = chord_node
-
-        self.registered_twitter_servers = [] ######No tendria sentido
         self.sessions = {}
 
     def start_server(self):
@@ -44,9 +44,6 @@ class Twitter_Server():
             client, addr =self.server.accept()
             print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
 
-
-            ######codigo alternativo########
-            
             request=client.recv(1024).decode()
             request=json.loads(request)
 
@@ -69,10 +66,6 @@ class Twitter_Server():
             # self.thread_dict[addr[1]] = session_handler
             # session_handler.start()
 
-
-
-
-                
 
     def handle_session(self, client):
 
@@ -125,10 +118,6 @@ class Twitter_Server():
             except Exception as e:
                 print(f"Error handling session: {e}")
                 break
-
-
-
-
 
     #region Discovery
 
