@@ -1,6 +1,8 @@
 from socket import socket
 from thread_holder import Thread_Holder
-from chord.chord_utils import Number_Assigment, TwoBase, get_my_ip
+import sys
+sys.path.append('../Social-Network')
+from chord_utils import Number_Assigment, TwoBase, get_my_ip
 from threading import Lock, Thread, Event
 import json
 from math import floor , log2
@@ -80,6 +82,7 @@ class Chord_Server():
         self.id_hex = None
         self.print_table = print_table
         self.Ft_lock = Lock()
+        self.max_id = int(''.join(['f' for _ in range(64)]) ,16)
         self.Ft: list[tuple[Chord_Node,bool]] = [None]*floor(log2(self.max_id + 1))
         self.log = []
         self.log_lock = Lock()
@@ -369,7 +372,7 @@ class Chord_Server():
         '''
         with self.log_lock:
             if entry:
-                self.log.append((entry ,str(datetime.datetime.now().time())))
+                self.log.append((entry ,str(datetime.now().time())))
         return
     
     def MaintainFt(self):
@@ -429,7 +432,7 @@ class Chord_Server():
     def start_server(self):
         self.server.bind(("0.0.0.0", self.port))
         self.server.listen()
-        self.update_log('Server listening at port', self.port)
+        self.update_log(f'Server listening at port {self.port}')
 
         while True:
             conn, addr = self.server.accept()
@@ -707,6 +710,11 @@ class Chord_Server():
             self.reps.append(msg['owner_ip'])
         socket_client.send('Ok'.encode())
 
+    def new_rep(self,rep_node: Chord_Node):
+    
+        for rep in rep_node.ip_list:
+            msg = Chord_Server.create_msg(cmd = self.new_rep_cmd, owner_ip = self.ip)
+            self.send_soft([rep],msg,'new_rep',self.port,5)
 
     def new_prev_handler(self ,msg ,socket_client ,addr):
         '''
