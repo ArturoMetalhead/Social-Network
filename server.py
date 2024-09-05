@@ -2,6 +2,8 @@ import json
 import time
 import socket
 import threading
+import random
+import select
 from visual_interface import *
 
 class Operator_Server():
@@ -21,6 +23,7 @@ class Operator_Server():
 
         self.discover_thread = None
         self.listen_discovery_thread = None
+        self.alive_servers_thread=None
 
         self.stop_threads = False
 
@@ -33,6 +36,11 @@ class Operator_Server():
         # Lista de servidores de Twitter registrados
 
         self.registered_twitter_servers = twitter_servers
+        self.alive_servers = []
+
+        # Candado
+
+        self.lock = threading.Lock()
 
 
     def start_operator_server(self):
@@ -43,6 +51,10 @@ class Operator_Server():
         self.listen_discovery_thread = threading.Thread(target=self.listen_for_discovery)
         self.listen_discovery_thread.start()
 
+        self.alive_servers_thread= threading.Thread(target=self.its_alive_server)
+        self.alive_servers_thread.start()
+
+
         #while not self.twitter_server_connected:
         
         self.operator.listen()
@@ -50,7 +62,8 @@ class Operator_Server():
 
         while not self.stop_threads:
             try:
-                self.operator.settimeout(1.0)
+                #self.operator.settimeout(1.0)
+
                 client, addr = self.operator.accept()
                 try:
                     request = client.recv(1024).decode()
@@ -63,7 +76,7 @@ class Operator_Server():
                     elif request['type'] == 'alive_request':
                         client.send(json.dumps({"type": "alive_response"}).encode())
                         client.close()
-                        
+
                 except Exception as e:
                     if not self.stop_threads:
                         print(f"Error handling client: {e}")
@@ -82,32 +95,57 @@ class Operator_Server():
         try:
             print(f"Client connected {client_socket.getpeername()} to {self.operator.getsockname()}") ######
 
-            twitter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             
-            for twitter_server in self.registered_twitter_servers:
+
+
+            while not self.stop_threads:
+
+                twitter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                with self.lock:
+                    
+                    for twitter_server in self.alive_servers:
+                        try:
+                            print(f"Trying to connect to Twitter Server: {twitter_server}")####
+
+                            twitter_socket.connect(twitter_server)
+                            twitter_socket.send(json.dumps({"type": "operator"}).encode())
+
+                            connected=True
+                            break
+                        except Exception as e:
+                            pass
+
+
+                if not connected:
+                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())
+                    #return
+                    continue
+
+                print(f"Connected")####
+                #twitter_socket.connect(self.registered_twitter_servers[0])###############################################
+
                 try:
-                    print(f"Trying to connect to Twitter Server: {twitter_server}")####
-                    twitter_socket.connect(twitter_server)
-                    connected=True
-                    break
+
+                    ####poner un booleano de si ya tenia una sesion activa y por aqui preguntar si ya estaba iniciada ponerla en home pero con un nuevo twitter socket y hacer un metodo restore
+
+                    session = Session(client_socket,twitter_socket)
+                    self.sessions[session] = session##########
+
+                    session.home()
                 except Exception as e:
-                    pass
 
-            if not connected:
-                client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())
-                return
+                    print(f"Error handling session")
 
-            print(f"Connected")####
-            #twitter_socket.connect(self.registered_twitter_servers[0])###############################################
-
-            try:
-
-                session = Session(client_socket,twitter_socket)
-                self.sessions[session] = session##########
-
-                session.home()
-            except Exception as e:
-                print(f"Error handling session")
+                    try:  #####para saber si el que se fue es el cliente o el server de twitter
+                        ready_to_read, ready_to_write, in_error = select.select([twitter_socket], [], [], 1.0)
+                        if ready_to_read or ready_to_write:
+                            break
+                        else:
+                            connected=False
+                            continue
+                    except Exception as e:
+                        print(e)
 
 
         finally:
@@ -123,6 +161,69 @@ class Operator_Server():
 
         for session in self.sessions:
             session.stop()
+
+    def switch_server(self):
+
+        # lock = threading.Lock()
+
+        print ("A")########
+        # self.discover_flag=False
+        # self.discover_thread.join()
+        print ("B")########
+
+        with self.lock:##############################################
+            available_servers = [(ip, port) for ip, port in self.alive_servers if (ip, port) != self.current_server]########cambie lo de registered por alive
+
+        if not available_servers:
+            print("C")########
+            # self.discover_flag=True#########
+            # self.discover_thread = threading.Thread(target=self.listen_for_discovery)#######
+            # self.discover_thread.start()########
+            print("D")########
+            return False
+        
+        new_server = random.choice(available_servers)
+        return self.connect_to_server(*new_server) ###### el connect to aqui no tengo
+    
+    def its_alive_server(self):
+        while not self.stop_threads:
+            
+            with self.lock:
+                for twitter_server in self.registered_twitter_servers:
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                            sock.connect(twitter_server)
+                            sock.send(json.dumps({"type": "alive_request"}).encode())
+                            response = json.loads(sock.recv(1024).decode())
+                            if response["type"] != "alive_response":
+                                raise Exception("Invalid response")
+                            sock.close()
+
+                            print(f"Server {twitter_server} is alive.")
+
+                            if twitter_server not in self.alive_servers:
+                                self.alive_servers.append(twitter_server)
+
+                    except Exception as e:
+                        print(f"Server {twitter_server} is not alive: {e}")
+
+                        try:
+                            self.alive_servers.remove(twitter_server)
+                            print(f"operator {twitter_server} removed")########
+                        except ValueError:
+                            pass
+
+
+                        # self.registered_operators.remove(operator)
+                        # print(f"Removed {operator} from the list of operators.")
+                        continue
+
+                    
+            time.sleep(10)
+
+
+
+
 
     #region Discovery
 
@@ -156,16 +257,6 @@ class Operator_Server():
                     if message['type'] == 'discovery':
                         ip = message['ip']
                         port = message['port']
-
-
-
-
-                        ################################
-
-                        # print(f"{self.operator_ip}:{self.operator_port} {self.registered_twitter_servers}")
-                        # if(self.operator_port == 8081):
-                        #     continue
-                        
 
                         #####HABRIA QUE PONER UN CANDADO AQUI PARA QUE NO REGISTRE AL MISMO TIEMPO EN QUE LO UTILICE
 

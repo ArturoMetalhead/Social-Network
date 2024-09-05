@@ -118,7 +118,7 @@ class Client_Manager:
             print("D")########
             return False
         
-        new_server = random.choice(available_servers)  ########TENGO QUE PONER PARA ELIMINAR LOS QUE NO ESTAN VIVOS
+        new_server = random.choice(available_servers)
         return self.connect_to_server(*new_server)
     
 

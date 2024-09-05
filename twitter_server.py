@@ -47,23 +47,27 @@ class Twitter_Server():
 
             ######codigo alternativo########
             
-            # request=client.recv(1024).decode()
-            # request=json.loads(request)
+            request=client.recv(1024).decode()
+            request=json.loads(request)
 
-            # print(f"[*] Received request: {request}")
+            print(f"[*] Received request: {request}")
 
-            # if request['type'] == 'operator':
-            #     self.sessions[addr[1]] = client
-            #     session_handler = threading.Thread(target=self.handle_session, args=(client,))
-            #     self.thread_dict[addr[1]] = session_handler
-            #     session_handler.start()
+            if request['type'] == 'operator':
+                self.sessions[addr[1]] = client
+                session_handler = threading.Thread(target=self.handle_session, args=(client,))
+                self.thread_dict[addr[1]] = session_handler
+                session_handler.start()
+
+            elif request['type'] == 'alive_request':
+                        client.send(json.dumps({"type": "alive_response"}).encode())
+                        client.close()
 
             #################################
 
-            self.sessions[addr[1]] = client
-            session_handler = threading.Thread(target=self.handle_session, args=(client,))
-            self.thread_dict[addr[1]] = session_handler
-            session_handler.start()
+            # self.sessions[addr[1]] = client
+            # session_handler = threading.Thread(target=self.handle_session, args=(client,))
+            # self.thread_dict[addr[1]] = session_handler
+            # session_handler.start()
 
 
 
