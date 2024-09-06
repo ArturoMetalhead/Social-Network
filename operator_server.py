@@ -96,12 +96,12 @@ class Operator_Server():
 
                 with self.lock:
 
-                    print("paso el lock")
-                    print(self.alive_servers)
+                    # print("paso el lock")
+                    # print(self.alive_servers)
                     
                     for twitter_server in self.alive_servers:
 
-                        print ("entro en for")
+                        #print ("entro en for")
                         try:
                             print(f"Trying to connect to Twitter Server: {twitter_server}")
 
@@ -115,11 +115,13 @@ class Operator_Server():
 
 
                 if not connected:
-                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please\n".encode())######mandarlo como un tipo warning o algo asi y que el otro lado revise el tipo para poder seguir en eso
+                    message="Not possible to connect to any Twitter Server. Wait a minute please\n"
+                    warning_message=json.dumps({'action': 'warning','data':message}).encode()
+                    client_socket.send(warning_message)
                     time.sleep(2)#10
                     continue
 
-                print(f"Connected")####
+                #print(f"Connected")####
                 #twitter_socket.connect(self.registered_twitter_servers[0])###############################################
 
                 try:
@@ -136,13 +138,18 @@ class Operator_Server():
 
                     try:  #####para saber si el que se fue es el cliente o el server de twitter
                         ready_to_read, ready_to_write, in_error = select.select([twitter_socket], [], [], 1.0)
+                        # print(ready_to_read)
+                        # print(ready_to_write)
+                        # print(in_error)
                         if ready_to_read or ready_to_write:
-                            print("se jodio el cliente")
-                            break
-                        else:
                             print("se jodio el server de twitter")
                             connected=False
                             continue
+                            
+                        else:
+                            print("se jodio el cliente")
+                            break
+                            
                     except Exception as e:
                         print(e)
 
@@ -186,18 +193,18 @@ class Operator_Server():
                                 raise Exception("Invalid response")
                             sock.close()
 
-                            print(f"Server {twitter_server} is alive.")
+                            #print(f"Server {twitter_server} is alive.")
 
                             if twitter_server not in self.alive_servers:
                                 self.alive_servers.append(twitter_server)
-                                print(f"added {twitter_server}")
+                                #print(f"added {twitter_server}")
 
                     except Exception as e:
-                        print(f"Server {twitter_server} is not alive: {e}")
+                        #print(f"Server {twitter_server} is not alive: {e}")
 
                         try:
                             self.alive_servers.remove(twitter_server)
-                            print(f"operator {twitter_server} removed")
+                            #print(f"operator {twitter_server} removed")
                         except ValueError:
                             pass
 
@@ -244,7 +251,7 @@ class Operator_Server():
                         if (ip, port) not in self.registered_twitter_servers:
                             self.registered_twitter_servers.append((ip, port))
                             #print(f"Discovered Twitter Server: {ip}:{port}")
-                            print(f"{self.operator_ip}:{self.operator_port} Discovered Twitter Server: {ip}:{port}")
+                            #print(f"{self.operator_ip}:{self.operator_port} Discovered Twitter Server: {ip}:{port}")
 
 
                 except Exception as e:

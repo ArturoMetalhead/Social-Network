@@ -51,7 +51,17 @@ class Client_Manager:
         while True:
 
             try:
-                print(self.client.recv(1024).decode())
+                incoming_data = self.client.recv(1024).decode()
+
+                try:
+                    data = json.loads(incoming_data)
+                    if data["action"] == "warning":
+                        print(data["data"])
+                        continue
+                except Exception as e:
+                    pass
+
+                print(incoming_data)
                 message = input(">> ")
                 message = json.dumps({"action": "message", "data": message})
                 self.client.send(message.encode())
@@ -60,7 +70,7 @@ class Client_Manager:
                 print("Received invalid JSON data.")
             except Exception as e:
                 print(f"Error receiving data: {e}")
-                print("Va pal switch")########
+                #print("Va pal switch")########
 
                 while not self.stop_threads:
                     if self.switch_server():
@@ -124,7 +134,7 @@ class Client_Manager:
 
                             if (ip, port) not in self.registered_operators:
                                 self.registered_operators.append((ip, port))
-                                print(f"Discovered operator: {ip}:{port}")
+                                #print(f"Discovered operator: {ip}:{port}")
                 except Exception as e:
                     print(f"Error in listen_for_discovery: {e}")
             
@@ -152,17 +162,17 @@ class Client_Manager:
                                 raise Exception("Invalid response")
                             sock.close()
 
-                            print(f"Server {operator} is alive.")
+                            #print(f"Server {operator} is alive.")
 
                             if operator not in self.alive_servers:
                                 self.alive_servers.append(operator)
 
                     except Exception as e:
-                        print(f"Server {operator} is not alive: {e}")
+                        #print(f"Server {operator} is not alive: {e}")
 
                         try:
                             self.alive_servers.remove(operator)
-                            print(f"operator {operator} removed")
+                            #print(f"operator {operator} removed")
                         except ValueError:
                             pass
                         continue
