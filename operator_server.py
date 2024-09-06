@@ -95,8 +95,13 @@ class Operator_Server():
                 twitter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 with self.lock:
+
+                    print("paso el lock")
+                    print(self.alive_servers)
                     
                     for twitter_server in self.alive_servers:
+
+                        print ("entro en for")
                         try:
                             print(f"Trying to connect to Twitter Server: {twitter_server}")
 
@@ -110,7 +115,8 @@ class Operator_Server():
 
 
                 if not connected:
-                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please".encode())######mandarlo como un tipo warning o algo asi y que el otro lado revise el tipo para poder seguir en eso
+                    client_socket.send("Not possible to connect to any Twitter Server. Wait a minute please\n".encode())######mandarlo como un tipo warning o algo asi y que el otro lado revise el tipo para poder seguir en eso
+                    time.sleep(2)#10
                     continue
 
                 print(f"Connected")####
@@ -131,8 +137,10 @@ class Operator_Server():
                     try:  #####para saber si el que se fue es el cliente o el server de twitter
                         ready_to_read, ready_to_write, in_error = select.select([twitter_socket], [], [], 1.0)
                         if ready_to_read or ready_to_write:
+                            print("se jodio el cliente")
                             break
                         else:
+                            print("se jodio el server de twitter")
                             connected=False
                             continue
                     except Exception as e:
@@ -182,6 +190,7 @@ class Operator_Server():
 
                             if twitter_server not in self.alive_servers:
                                 self.alive_servers.append(twitter_server)
+                                print(f"added {twitter_server}")
 
                     except Exception as e:
                         print(f"Server {twitter_server} is not alive: {e}")
