@@ -37,9 +37,6 @@ class Client_Manager:
 
     def start_client(self):
 
-        self.client.connect(self.current_server)
-        self.client.send(json.dumps({"type": "client"}).encode())
-
         self.discover_thread = threading.Thread(target=self.listen_for_discovery)
         self.stop_threads = False
         self.discover_flag=True
@@ -47,6 +44,23 @@ class Client_Manager:
 
         self.alive_servers_thread= threading.Thread(target=self.its_alive_server)
         self.alive_servers_thread.start()
+
+
+        while True: #Para garantizar la conexion inicial
+
+
+            try:
+                self.client.connect(self.current_server)
+                self.client.send(json.dumps({"type": "client"}).encode())
+                break
+            
+            except Exception as e:
+                print(f"Error connecting to server: {e}")
+                if not self.switch_server():
+                    print("No available servers to connect. Trying in 5 seconds.")
+                    time.sleep(5)
+                    continue
+
 
         while True:
 
