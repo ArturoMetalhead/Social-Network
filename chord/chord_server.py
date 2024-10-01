@@ -1,4 +1,4 @@
-from socket import socket
+from socket import SO_REUSEADDR, SOL_SOCKET, socket
 from thread_holder import Thread_Holder
 import sys
 sys.path.append('../Social-Network')
@@ -14,6 +14,11 @@ from hashlib import shake_256
 from math import floor , log2
 import hashlib
 import protocols
+
+try:
+    from threaded_server import MultiThreadedServer 
+except:
+    from chord.threaded_server import MultiThreadedServer
 
 class State_Storage():
     def __init__(self):
@@ -75,22 +80,32 @@ class Chord_Node():
         return Chord_Node(int(d['id_hex'],16),d['id_hex'],d['ip_list'],d['as_max'])
     
 class Chord_Server():
-    def __init__(self, DHT_name, port, disable_log, id_hex=None, print_table = False):
+    def __init__(self, DHT_name, port, disable_log, ip = None, id_hex=None, print_table = False, entry_points=[]):
         self.DHT_name = DHT_name
         self.port = port
-        self.ip = get_my_ip()
+        if not ip:
+            self.ip = get_my_ip()
+        else:
+            self.ip = ip
         self.id_hex = None
+        self.disable_realtime_log = disable_log
         self.print_table = print_table
-        self.Ft_lock = Lock()
         self.max_id = int(''.join(['f' for _ in range(64)]) ,16)
         self.Ft: list[tuple[Chord_Node,bool]] = [None]*floor(log2(self.max_id + 1))
         self.log = []
         self.log_lock = Lock()
         self.busy_lock = Lock()
+        self.thread_count_Lock = Lock()
+        self.Ft_lock = Lock()
+        self.thread_count = 100
         self.request_count = {}
         self.reps = [self.ip]
         self.state_storage = State_Storage()
-        self.server = socket(AF_INET, SOCK_STREAM)
+        self.busy = False
+        #self.server = socket(AF_INET, SOCK_STREAM)
+        #self.server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.server : MultiThreadedServer = MultiThreadedServer(self.port ,100 ,100 ,2 ,self.create_dispatcher() , log = False)
+        self.entry_points = entry_points # Nodes that initially are in the chord network
 
         # Comunication commands
         self.get_succ_req = 'get_succ_req'
@@ -104,8 +119,9 @@ class Chord_Server():
         self.new_succ_cmd = 'new_succ'
         self.new_prev_cmd = 'new_prev'
         self.get_reps_cmd = 'get_reps'
+        self.get_node = 'get_node'
 
-        self.request_handler = {
+        self.response = {
             self.get_succ_req: self.get_succ_req_handler, # implemented
             self.get_succ_resp_cmd:self.get_succ_resp_handler, #implemented
             self.ImYSucc_cmd: self.ImYSucc_handler, # implemented
@@ -116,7 +132,8 @@ class Chord_Server():
             self.new_rep_cmd: self.new_rep_handler, # implemented
             self.new_succ_cmd: self.new_succ_handler, # implemented
             self.new_prev_cmd: self.new_prev_handler, # implemented
-            self.get_reps_cmd: self.get_reps_handler #implemented
+            self.get_reps_cmd: self.get_reps_handler, #implemented
+            self.get_node: self.get_node_ips
         }
 
         # Hex ID assigment
@@ -145,7 +162,10 @@ class Chord_Server():
             self.Ft[i] = self.Ft[1]
 
     def insert(self, ips):
+        print("ENTRANDO AL INSERT")
         node = self.ask_succ(ips, self.id_hex, False)
+        print("SALIO DEL ASK SUCC")
+        print(f'node de respuesta: {node}')
         prev = None
         succ = None
 
@@ -154,11 +174,13 @@ class Chord_Server():
         else:
             prev, succ = self.insert_new_node(ips, node)
         
+        print("COMENZANDO A RELLENAR FT DENTRO DEL INSERT")
         self.Ft[0] = (prev, self.ip in prev.ip_list)
         me_as_succ = self.ip in succ.ip_list
 
         for i in range(1 ,len(self.Ft)):
             self.Ft[i] = (succ,me_as_succ)
+        print("SALIENDO DEL INSERT")
 
     def insert_new_node(self, ips, succ_node):
         '''
@@ -217,15 +239,18 @@ class Chord_Server():
             id_hex: int -> hexadecimal representation of the id
             as_max: bool -> if the node is the maximum node
         '''
+        print("ENTRANDO AL ASK SUCC")
         holder = self.state_storage.insert_state()
 
         while(True):
+            print("entrando al while de ask_succ")
             for _ in range(10):
+                print("entrando al for de ask_succ")
                 msg = Chord_Server.create_msg(cmd = self.get_succ_req ,id_hex = id_hex ,owner_ip = self.ip ,as_max = as_max ,req_id = holder.id)
                 self.update_log(f'starting to send (ask_succ to {ips} for {id_hex} as_max:{str(as_max)})')                
                 self.send_til_success(ips ,msg ,'ask_succ',self.port)
                 self.update_log(f'waiting for response in ask_succ')                
-
+                print("PASA EVENTO ASK SUCC #########################################")
                 holder.hold_event.wait(5)
                 if holder.desired_data:
                     self.state_storage.delete_state(holder.id)
@@ -234,7 +259,14 @@ class Chord_Server():
                 break
             self.update_log('timout waiting 10 times')
             sleep(2)
+        print("SALIENDO DEL ASK SUCC")
         return holder.desired_data
+
+    def accept_succ(self ,owner_ip ,req_id ,node:Chord_Node):
+        s_node = str(Chord_Node(None,node.id.hex,self.reps,node.as_max))
+        msg = Chord_Server.create_msg(cmd = self.get_succ_resp_cmd ,node = s_node,req_id = req_id)
+        self.update_log('starting to send (accept)')
+        self.send_til_success([owner_ip] ,msg ,'accept',self.port)
     
     def ImYPrev(self, succ: Chord_Node):
         msg = Chord_Server.create_msg(cmd = self.ImYPrev_cmd, id_hex = self.id_hex, owner_ip = self.reps)
@@ -266,6 +298,8 @@ class Chord_Server():
         return arr[0], Chord_Node.build_from_message(arr[1]), Chord_Node.build_from_message(arr[2]), arr[3]
     
     def succ_who(self, k, as_max):
+
+        #print(f"succ who {self.id_hex}")
         res_id = self.id
         res_hex = self.id_hex
 
@@ -274,7 +308,17 @@ class Chord_Server():
             res_id += self.max_id
             res_hex = hex(res_id)[2:]
 
-        # if is this
+        # # if is this
+        # while(self.Ft[0]==None):
+        #     pass
+
+        if(self.DHT_name=="Node2"):
+
+            print("PASO EL WHILE FT [0]")
+            print(f'{self.Ft[0]}')
+            print(f'{self.Ft[0][0]}')
+
+
         if(self.Ft[0][0].id.dec < k or as_max or self.Ft[0][0].id.dec > self.id) and k <= self.id:
             return Chord_Node(res_id, res_hex, self.reps, as_max), True
         
@@ -297,6 +341,31 @@ class Chord_Server():
                 else:
                     return self.Ft[i]
 
+    def succ(self ,id: TwoBase ,owner_ip ,as_max ,req_id):
+
+        #print("succ who por el succ")
+        who, mine = self.succ_who(id.dec,as_max)
+        self.update_log(f'who id:{who.id.hex} ip:{who.ip_list} as_max:{who.as_max}')
+        if mine:
+            if(owner_ip == self.ip):
+                if as_max:
+                    self.update_log('my self as_max')
+                    holder = self.state_storage.get_state(req_id)
+                    if not holder:
+                        print("HOLDER IS NONE EN SUCC")
+                        return
+                    holder.desired_data = who
+                    holder.hold_event.set()
+                    return False
+                return True
+            self.update_log(f'accepting {id.hex}')
+
+            self.accept_succ(owner_ip ,req_id ,who)
+        else:
+            self.update_log(f'redirecting request to {who.id.hex}:{who.ip_list}')
+            msg = Chord_Server.create_msg(cmd = self.get_succ_req_cmd ,id_hex = id.hex ,owner_ip = owner_ip ,as_max = who.as_max ,req_id = req_id)
+            self.send_til_success(who.ip_list ,msg ,'redirect',self.port)
+            return False
     
     # endregion
 
@@ -310,6 +379,7 @@ class Chord_Server():
             response = self.send_and_close(ips ,msg ,port)
             if not response:
                 self.update_log(f'failed to send {req} to {ips}:{port}')
+                print(f'failed to send {req} to {ips}:{port}')
                 sleep(2)
         return response
     
@@ -322,10 +392,18 @@ class Chord_Server():
                 try:
                     s = socket(AF_INET ,SOCK_STREAM)
                     self.update_log(f'connecting to {ip}:{port}')
-                    s.connect((ip ,port))   
+
+                    print(f'MI IP es{self.ip} MI NODO ES {self.DHT_name}')
+                    print(f'connecting to {ip}:{port}')
+                    s.connect((ip ,port))
+                    print(f'conected to {ip}:{port}') 
                     s.send(msg.encode())
-                    if have_recv:          
-                        response = s.recv(15000)
+                    print(f'Mensaje a enviar:{msg}')
+                    if have_recv:
+                        print(f' {self.ip,self.port} REcibiendo')          
+                        response = s.recv(15000).decode()
+                        print(f'{self.ip,self.port} RECIBIO {response}')
+                        #print(response)
                     else:
                         response = 'Ok'
                     s.close()
@@ -366,7 +444,7 @@ class Chord_Server():
         kwargs['type'] = protocols.CHORD_INTERNAL
         return json.dumps(kwargs)
     
-    def update_log(self, entry):
+    def update_log(self, entry=None):
         '''
         Update the log with an entry.
         '''
@@ -385,13 +463,16 @@ class Chord_Server():
                         self.get_reps(self.Ft[0][0])
                 for i in range(1 ,len(self.Ft)):
                     current = self.id + 2**(i - 1)
+
+                    #print(f"succ who por el maintain {self.id_hex}")
+
                     who, mine = self.succ_who(current ,False)
                     if not mine:
                         current_hex = hex(current)[2:]
                         who = self.ask_succ(who.ip_list ,current_hex ,who.as_max)
                     with self.Ft_lock:
                         self.Ft[i] = (who,self.ip in who.ip_list)
-                self.update_log()
+                # self.update_log()
                 sleep(5)
 
     def start(self):
@@ -399,48 +480,104 @@ class Chord_Server():
         Start the server.
         '''
         # Initialize thread for start server
-        server_thread = Thread(target=self.start_server)##################################
+        #server_thread = Thread(target=self.start_server)##################################
+        #server_thread.start()
+
+        server_thread = Thread(target= self.server.start_server)
         server_thread.start()
+        ips = []
 
-        ips = self.get_some_node()
+        if len(self.entry_points) != 0:
+            ips = self.get_some_node()
 
-        if not ips:
+        if len(ips) == 0:
             self.update_log('First node to join the network')
+            print(f'First node to join the network {self.id_hex}')
             self.insert_as_first()
         else:
             self.update_log('Node to join the network')
+            print(f'Node to join the network {self.id_hex}')
+            print("COMENZANDO INSERCION")
             self.insert(ips)
+            print("TERMINANDO INSERCION")
 
         # Initialize thread for maintaining the finger table
+        print("VA A COMENZAR EL HILO DE FINGERTABLE #######################")
         ft_thread = Thread(target=self.MaintainFt, daemon=True)
+        print("############################################################")
         ft_thread.start()
 
-        try:
-            insert_response = self.build_insert_response(self)
-            self.send_soft(['127.0.0.1'], insert_response, "to_logger", protocols.PORT_GENERAL_LOGGER, 5)
+        # try:
+        #     insert_response = self.build_insert_response()
+        #     self.send_soft(['127.0.0.1'], insert_response, "to_logger", protocols.PORT_GENERAL_LOGGER, 5)
 
-            ##################################### NOTIFICAR AL TWITTER SERVER DE LA EXISTENCIA DE CHORD SERVER #################
+        #     ##################################### NOTIFICAR AL TWITTER SERVER DE LA EXISTENCIA DE CHORD SERVER #################
 
-            self.update_log('Node inserted in the network')
+        #     self.update_log('Node inserted in the network')
 
-            server_thread.join()
+        #     server_thread.join()
 
-        except Exception as e:
-            self.update_log(f'Error starting the server: {e}')
+        # except Exception as e:
+        #     self.update_log(f'Error starting the server: {e}')
 
+        self.update_log(f'Node inserted with ID: {self.id_hex}, Successor: {self.Ft[1][0].ip_list}')
+        print((f'Node inserted with ID: {self.id_hex}, Successor: {self.Ft[1][0].ip_list}'))
+        server_thread.join()
 
-    def start_server(self):
-        self.server.bind(("0.0.0.0", self.port))
-        self.server.listen()
-        self.update_log(f'Server listening at port {self.port}')
+    def create_dispatcher(self):
+        def dispatcher(id:int ,task: tuple[socket ,object] ,event:Event ,storage):
+            with self.thread_count_Lock:
+                self.thread_count -= 1
+            (socket_client , addr_client) = task
+            try:                
+                msg = socket_client.recv(15000)
+                parsed_msg = self.parse_msg(msg)
 
-        while True:
-            conn, addr = self.server.accept()
-            self.update_log(f'New connection from {addr}')
+                print (f'{self.DHT_name}   DISPATCHER: MSG es {parsed_msg}')
+            except Exception as e:
+                self.update_log(f'Bad Request: {msg}')
+                self.update_log(str(e))
+                return
+            self.update_log(f'recived: {parsed_msg}')
+            try:
+              self.response[parsed_msg['cmd']](parsed_msg ,socket_client ,addr_client)
+            except:
+              print("DISPATCHER NO SALE DE LA EXCEPT")
+              return
+            with self.thread_count_Lock:
+                self.thread_count += 1
 
-            request_thread = Thread(target=self.handle_request, args=(conn, addr)
-            )
-            request_thread.start()
+        return dispatcher
+    
+    def parse_msg(self ,raw_msg:str):
+        msg_dict = json.loads(raw_msg)
+        if msg_dict['type'] == protocols.LOGGER:
+            # print(f'recived outside req for {msg_dict["hash"]}')
+            nick_hash = hashlib.sha256(msg_dict['hash'].encode()).hexdigest()
+            # nick_hash = hex(int(msg_dict['hash']))[2:]
+            
+            msg_dict = {
+                'cmd': self.outside_cmd,
+                'id_hex': nick_hash,
+                'req_id': msg_dict['id_request']
+            }
+        return msg_dict
+
+    # def start_server(self):
+    #     self.server.bind(("0.0.0.0", self.port))
+
+    #     self.server.listen()
+    #     print(f"Server listening at port {self.port}")
+    #     self.update_log(f'Server listening at port {self.port}')
+
+    #     while True:
+    #         conn, addr = self.server.accept()
+    #         self.update_log(f'New connection from {addr}')
+    #         print(f'New connection from {addr} on {self.DHT_name} with {self.server.getsockname()}')
+
+    #         request_thread = Thread(target=self.handle_request, args=(conn, addr)
+    #         )
+    #         request_thread.start()
     
     def handle_request(self, conn, addr):
         '''
@@ -452,21 +589,45 @@ class Chord_Server():
         '''
         try:
             request = conn.recv(1024)
+
+            print(f'nodo:{self.DHT_name},en el handle request,request{request}')#############
+
             parsed_request = self.parse_request(request)
-
             command = parsed_request['cmd']
-            method = self.request_handler.get(command)
-
-            if method:
-                method(parsed_request, conn, addr)
+            if command == 'get_node':
+                node_ips = self.get_node_ips()
+                response = json.dumps({'ip_loggers': node_ips})
+                conn.send(response.encode())
+                #conn.close()
+        
             else:
-                self.update_log(f'Command {command} not found')
+                method = self.request_handler.get(command)
 
-        except Exception as e:
-            self.update_log(f'Error in handle_request: {e}')
+                if method:
+                    method(parsed_request, conn, addr)
+                else:
+                    self.update_log(f'Command {command} not found')
+                    print(f'Command {command} not found')
+
+
+        # except Exception as e:
+        #     self.update_log(f'Error in handle_request: {e}')
+        #     print(f'HANDLEREQUEST: Error in handle_request: {e}')
 
         finally:
             conn.close()
+        
+    def get_node_ips(self,msg ,socket_client ,addr):
+        node_ips = []
+        # for node in self.Ft:
+        #     if node[0] is not None:###################################################### verify if its not the same node than the previous one 
+        #         node_ips.extend(node[0].ip_list)
+        if self.Ft[0][0] is not None:
+            node_ips.extend(self.Ft[0][0].ip_list)
+        for i in range (1,len(self.Ft)):
+            if self.Ft[i][0] is not None and self.Ft[i][0] != self.Ft[i-1][0]:
+                node_ips.extend(self.Ft[i][0].ip_list)
+        return node_ips
 
     def parse_request(self, request):
         '''
@@ -498,17 +659,34 @@ class Chord_Server():
             parsed_request = {}
 
 
+    # def get_some_node(self):
+    #     '''
+    #     Get some node info from the network.
+    #     '''
+    #     self.update_log('starting to send for (get_some_node)')
+
+    #     if not self.entry_points:
+    #         self.update_log('No entry nodes available to connect.')
+    #         return None  # Maneja el caso según sea necesario
+        
+    #     msg_dict = {######################################################################
+    #         'type': protocols.CHORD ,
+    #         'proto': protocols.NEW_LOGGER_REQUEST,
+    #         'cmd': 'get_node'
+    #     }
+    #     text = json.dumps(msg_dict)
+    #     response = self.send_til_success(self.entry_points ,text ,'register' , 5000)######################################3
+    #     resp_dict = json.loads(response)
+    #     return resp_dict['ip_loggers']
+
     def get_some_node(self):
-        '''
-        Get some node info from the network.
-        '''
         self.update_log('starting to send for (get_some_node)')
         msg_dict = {
             'type': protocols.CHORD ,
             'proto': protocols.NEW_LOGGER_REQUEST
         }
         text = json.dumps(msg_dict)
-        response = self.send_til_success(self.entry_points ,text ,'register' , protocols.PORT_GENERAL_ENTRY)
+        response = self.send_til_success(self.entry_points ,text ,'register', 5000)
         resp_dict = json.loads(response)
         return resp_dict['ip_loggers']
     
@@ -637,9 +815,13 @@ class Chord_Server():
         socket_client.send('Ok'.encode())
         socket_client.close()
         
+        
+        if(msg is not None):
+            print("msg not None")
         self.update_log(f'start receiving get_succ_req {msg["id_hex"]}')
 
         id = TwoBase(int(msg["id_hex"],16),msg['id_hex'])
+        print("LLAMADA AL SUCC DESDE GET SUCC HANDLER##########################")
         self.succ(id,msg['owner_ip'] ,msg['as_max'] ,msg['req_id'])
         self.update_log('end receiving get_succ_req')
 
@@ -648,10 +830,13 @@ class Chord_Server():
         Receive the get_succ_resp message.
         '''
         self.update_log('start receiving get_succ_resp')
-        holder = self.state_storage.get_state(msg['req_id'])
+        holder = self.state_storage.get_state(msg['req_id'])######################
 
         if holder is None:
+            print(f'HOLDER IS NONE BECAUSE MSG IS:{msg} IN {self.DHT_name}')
             return
+        # while holder is None:###################################################
+        #     pass
         holder.desired_data = Chord_Node.build_from_message(msg['node'])
         holder.hold_event.set()
         self.state_storage.delete_state(msg['req_id'])
@@ -697,7 +882,7 @@ class Chord_Server():
             'id_request':req_id
         }
         
-        self.send_soft(['127.0.0.1'],json.dumps(msg_dict),'outside_resp',protocols.PORT_GENERAL_LOGGER,5,have_recv = False)
+        self.send_soft(['127.0.0.1'],json.dumps(msg_dict),'outside_resp',protocols.PORT_GENERAL_LOGGER,5,have_recv = False)################################################################################################################################## 127.0.0.1
 
         self.update_log(f'end outside req')
     

@@ -4,6 +4,8 @@ import threading
 import sys
 import time
 import hashlib
+import sys
+sys.path.append('../Social-Network')
 from models.model import *
 
 # Operation codes
