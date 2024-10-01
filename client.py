@@ -34,6 +34,14 @@ class Client_Manager:
         id_type_server = 1 #id de operadores
         self.discovery_port = 11000 + id_type_server
 
+        # Diccionario para realizar cache
+
+        self.cache = {}
+
+        # Flag para si el ultimo perfil se ensenno ya al usuario
+
+        self.showed=False ##################
+
 
     def start_client(self):
 
@@ -75,10 +83,43 @@ class Client_Manager:
                 except Exception as e:
                     pass
 
-                print(incoming_data)
-                message = input(">> ")
-                message = json.dumps({"action": "message", "data": message})
-                self.client.send(message.encode())
+                # ########## Caching data
+                # data = json.loads(incoming_data)
+                # if data["action"] == "profile_message":
+                #     self.cache[data["username"]] = data["data"]
+                #     if self.showed:
+                #         print(data["data"])
+                #         self.showed=False
+
+                # ##########
+
+                # elif data["action"] == "profile_request":
+
+                #     username=input("@ ")
+
+                #     if data["username"] in self.cache:
+                #         print(self.cache[data["username"]])
+                #         self.showed=True
+
+                #         response = json.dumps({"action": "profile_response", "data":username})
+
+                # else:
+
+                #########
+
+                    print(incoming_data)
+
+                    not_valid_message=True
+
+                    while not_valid_message:
+                        message = input(">> ")
+                        if len(message) > 280:
+                            print ("Too long message,please try with 280 or less letters")
+                        else:
+                            not_valid_message=False
+
+                    message = json.dumps({"action": "message", "data": message})
+                    self.client.send(message.encode())
 
             except json.JSONDecodeError:
                 print("Received invalid JSON data.")
