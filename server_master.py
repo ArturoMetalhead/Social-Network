@@ -45,12 +45,18 @@ class Server_Master():
 
 
     def handle_client(self,client):
+
+        print("ALGUIEN SE CONECTO")
+
         while not self.stop_threads:
             try:
                 client.send(json.dumps(self.servers).encode())
+                print("SE ENVIO")
 
             finally:
                 client.close()
+                break
+            
 
     def stop_server(self):
         self.stop_threads = True

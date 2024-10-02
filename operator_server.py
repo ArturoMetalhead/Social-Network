@@ -8,7 +8,7 @@ from session_interface import *
 
 class Operator_Server():
 
-    def __init__(self,twitter_servers=[], ip='localhost', port=0):
+    def __init__(self,twitter_servers=[], ip='localhost', port=0,server_master=("localhost",8089)):
 
         # Configuración de puertos
         id_type_server = 1
@@ -40,6 +40,7 @@ class Operator_Server():
 
         self.registered_twitter_servers = twitter_servers
         self.alive_servers = []
+        self.server_master =server_master
 
 
     def start_operator_server(self):
@@ -119,6 +120,30 @@ class Operator_Server():
                     warning_message=json.dumps({'action': 'warning','data':message}).encode()
                     client_socket.send(warning_message)
                     time.sleep(2)#10
+
+                    #preguntar al server master
+                    try:
+                        print("PREGUNTANDO")
+                        twitter_socket.settimeout(1.0)
+                        print("1")
+                        twitter_socket.connect(self.server_master)
+                        print("2")
+                        response = json.loads(twitter_socket.recv(1024).decode())
+                        print("3")
+
+                        with self.lock:
+
+                            for server in response:
+                                if server not in self.registered_twitter_servers:
+                                    print(f"REGISTRO {server}")
+                                    self.registered_twitter_servers.append(server)
+                        print("RECIBIDO")
+
+                    except Exception as e:
+                            pass
+                    
+                    ###################
+
                     continue
 
                 #print(f"Connected")####

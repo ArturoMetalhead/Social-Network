@@ -11,7 +11,7 @@ import select
 
 class Client_Manager:
 
-    def __init__(self,operators):
+    def __init__(self,operators,server_master=("localhost",8088)):
 
         # Socket TCP para conectarse a los servidores
 
@@ -22,6 +22,7 @@ class Client_Manager:
 
         self.registered_operators=operators
         self.alive_servers=[]
+        self.server_master=server_master
 
         # Hilos en proceso y flag para detenerlos
 
@@ -60,6 +61,9 @@ class Client_Manager:
             try:
                 self.client.connect(self.current_server)
                 self.client.send(json.dumps({"type": "client"}).encode())
+
+                print("ENVIO UN MENSAJE?")
+                print(self.current_server)
                 break
             
             except Exception as e:
@@ -67,6 +71,13 @@ class Client_Manager:
                 if not self.switch_server():
                     print("No available servers to connect. Trying in 5 seconds.")
                     time.sleep(5)
+
+                    #preguntar al server master
+                    self.ask_server_master()
+
+                    print("SALIO DEL ASK SERVER_MASTER")
+                    
+                    ###################
                     continue
 
 
@@ -132,6 +143,11 @@ class Client_Manager:
                         print("Switched to another server.")
                         break
                     print("No available servers to connect. Trying in 5 seconds.")
+
+                    #preguntar al server master
+                    self.ask_server_master()
+                    
+                    ###################
                     
                     time.sleep(50)
                     
@@ -150,6 +166,30 @@ class Client_Manager:
         except Exception as e:
             print(f"Failed to connect to {ip}:{port}: {e}")
             return False
+
+    def ask_server_master(self):
+        #preguntar al server master
+        try:
+            print("PREGUNTANDO")
+            sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1.0)
+            print("1")
+            sock.connect(self.server_master)
+            print("2")
+            response = json.loads(sock.recv(1024).decode())
+            print("3")
+            sock.close()
+
+            with self.lock:
+
+                for server in response:
+                    if server not in self.registered_operators:
+                        print(f"REGISTRO {server}")
+                        self.registered_operators.append(server)
+            print("RECIBIDO")
+
+        except Exception as e:
+                pass
 
     
     def switch_server(self):
