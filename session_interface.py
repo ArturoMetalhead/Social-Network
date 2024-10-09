@@ -13,6 +13,15 @@ class Session:
         self.logged_in = False
         self.user = None
 
+        self.first_time=True
+
+    def stop(self):###############3agragar cosas para detener los procesos de por medio
+
+        self.client_socket.send("You are offline".encode())####
+
+        self.client_socket.close()#####
+        self.twitter_socket.close()####
+
     def print_menu(self,options):
         response = ""
         for i, option in enumerate(options, 1):
@@ -22,7 +31,11 @@ class Session:
     def get_user_choice(self,options):
         while True:
             try:
-                choice=int(self.client_socket.recv(1024).decode())
+                request = json.loads(self.client_socket.recv(1024).decode())#######################
+                #print(self.client_socket.recv(1024).decode())####
+                #choice=int(self.client_socket.recv(1024).decode())
+                choice=int(request["data"])############
+
                 if 1 <= choice <= len(options):
                     return choice
                 else:
@@ -32,10 +45,16 @@ class Session:
 
     def home(self):
 
-        response=("        BIENVENIDO A NUESTRA RED SOCIAL        ")
+        response = ""
+
+        if self.first_time:
+            response=("        BIENVENIDO A NUESTRA RED SOCIAL        ")
+            self.first_time=False
 
         if self.logged_in:
-            response+= (f"\nBienvenido, {self.user.username}!")
+            response+= (f"\nBienvenido, {self.user.username}!\n")
+            response+= "Seleccione una opción:\n"
+
             options = ["Ver perfil", "Ver seguidores", "Ver seguidos", "Publicar", "Cerrar sesión"]
             response+= self.print_menu(options)
 
@@ -56,74 +75,99 @@ class Session:
             
             actions = [self.login, self.register]
             actions[choice - 1]()
+
+            self.home()
         
         self.client_socket.send(("          GRACIAS POR USAR NUESTRA APP    ").encode())
 
     def send_request(self, request):
         #enviar el socket.getpeername()[1] para saber a quien enviar la respuesta
-        self.twitter_socket.send(json.dumps(request).encode('utf-8'))
-        response = self.twitter_socket.recv(1024).decode('utf-8')
-        return json.loads(response)
+
+        try:
+            self.twitter_socket.send(json.dumps(request).encode())
+            response = self.twitter_socket.recv(1024).decode()
+            return json.loads(response)
+        
+        except Exception as e:
+            print(f"Error sending request: {e}")
+            return None
 
     def login(self):
-        self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-        username = self.client_socket.recv(1024).decode()
-        self.verify_back(username) #
-        self.client_socket.send("Ingrese su contraseña: ".encode())
-        password = self.client_socket.recv(1024).decode()
-        self.verify_back(password) #
 
-        request = {
-            'action': 'login',
-            'username': username,
-            'password': password
-        }
-        response = self.send_request(request)
-        if response == 'success':
-            self.logged_in = True
-            self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
-        
-        elif response == "incorrect_password":
-            self.client_socket.send("La contraseña es incorrecta".encode())
-        else:
-            self.client_socket.send("El usuario no existe".encode())
-        self.home()
-        self.user = User(username, password, " ")
+        succesful_login = False
+        while(not succesful_login):
+
+            self.client_socket.send("Ingrese su nombre de usuario: ".encode())
+            username= json.loads(self.client_socket.recv(1024).decode())["data"]
+            #username = self.client_socket.recv(1024).decode()
+            self.verify_back(username) #
+
+            self.client_socket.send("Ingrese su contraseña: ".encode())
+            password=json.loads(self.client_socket.recv(1024).decode())["data"]
+            #password = self.client_socket.recv(1024).decode()
+            self.verify_back(password) #
+
+            request = {
+                'type': 'operator',
+                'action': 'login',
+                'username': username,
+                'password': password
+            }
+
+            response = self.send_request(request)
+            
+            if response['response'] == 'success':
+                self.logged_in = True
+                succesful_login = True
+                #self.client_socket.send(f"Bienvenido nuevamente {username}.".encode())
+            
+            elif response['response'] == "incorrect_password":
+                self.client_socket.send("La contraseña es incorrecta".encode())
+            else:
+                self.client_socket.send("El usuario no existe".encode())
+
+        user = User(username, password, "")
+        self.user = user
 
     def register(self):
         succesful_register = False
         while(not succesful_register):
             self.client_socket.send("Ingrese su nombre de usuario: ".encode())
-            username = self.client_socket.recv(1024).decode()
+            username = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(username) #
+
             self.client_socket.send("Ingrese su contraseña: ".encode())
-            password = self.client_socket.recv(1024).decode()
+            password = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(password) #
 
             self.client_socket.send("Ingrese su correo electrónico: ".encode())
-            email = self.client_socket.recv(1024).decode()
+            email = json.loads(self.client_socket.recv(1024).decode())["data"]
             self.verify_back(email) #
             
             # Crear un nuevo usuario con los datos ingresados
             request = {
                 'type': 'operator',
                 'action': 'register',
-                'data': {
-                    'username': username,
-                    'password': password,
-                    'email': email
-                }
+                'username': username,
+                'password': password,
+                'email': email
             }
 
-            response = self.send_request(request)
-            if response == 'success':
+            response = self.send_request(request)#####response['response'] == 'success'?????? no hay mejor nombre?
+
+            print(response['response'])#####
+
+            if response['response'] == 'success':
+                succesful_register = True
                 self.logged_in = True
-                self.client_socket.send(f"Bienvenido {username}.".encode())
-            elif response == 'user_already_exists':
+                #self.client_socket.send(f"Bienvenido {username}.\n Toque enter para continuar \n".encode())
+
+
+            elif response['response']  == 'user_already_exists':
                 self.client_socket.send(f"El nombre de usuario {username} ya existe".encode())
-            elif response == 'password_needed':
+            elif response['response']  == 'password_needed':
                 self.client_socket.send("Es necesario que provea una contraseña".encode())
-            elif response == 'email_needed':
+            elif response ['response'] == 'email_needed':
                 self.client_socket.send("Es necesario que provea una dirección de email".encode())
         
         # Asignar el usuario a la variable user y cambiar logged_in a True
@@ -166,4 +210,3 @@ class Session:
         
     def recieve_request(data):##############
         pass
-
