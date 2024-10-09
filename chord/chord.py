@@ -4,7 +4,9 @@ import threading
 import sys
 import time
 import hashlib
-from models.model import *####################################################
+import sys
+sys.path.append('../Social-Network')
+from models.model import *
 
 # Operation codes
 FIND_SUCCESSOR = 1
@@ -25,7 +27,7 @@ def getShaRepr(data: str):
 # Reference to a node in the Chord network
 class ChordNodeReference:
     def __init__(self, id: int, ip: str, port: int = 8001):
-        self.id = getShaRepr(ip)
+        self.id = getShaRepr(str(id))
         self.ip = ip
         self.port = port
 
@@ -35,6 +37,7 @@ class ChordNodeReference:
                 s.connect((self.ip, self.port))
                 s.sendall(f'{op},{data}'.encode('utf-8'))
                 return s.recv(1024)
+                
         except Exception as e:
             print(f"Error sending data: {e}")
             return b''
@@ -88,15 +91,18 @@ class ChordNodeReference:
 
 
 class ChordNode:
-    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 4):
-        self.id = getShaRepr(ip)
+    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 50):
+        self.id = getShaRepr(str(id))
         self.ip = ip
         self.port = port
-        self.ref = ChordNodeReference(self.id, self.ip, self.port)
+        self.ref = ChordNodeReference(id, self.ip, self.port)
         self.succ = self.ref  # Initial successor is itself
         self.pred = None  # Initially no predecessor
         self.m = m  # Number of bits in the hash/key space
-        self.finger = [self.ref] * self.m  # Finger table
+        self.finger = []
+        for i in range(self.m):
+            start = (self.id + 2 ** i) % (2 ** self.m)
+            self.finger.append(self.find_succ(start))
         self.next = 0  # Finger table index to fix next
 
         threading.Thread(target=self.stabilize, daemon=True).start()  # Start stabilize thread
@@ -163,6 +169,7 @@ class ChordNode:
 
     def fix_fingers(self):
         while True:
+            print("\nFix_fingers")
             try:
                 i = self.next
                 start = (self.id + 2 ** i) % (2 ** self.m)
@@ -171,8 +178,6 @@ class ChordNode:
             except Exception as e:
                 print(f"Error in fix_fingers: {e}")
             time.sleep(10)
-
-
 
     def check_predecessor(self):
         while True:
@@ -187,7 +192,7 @@ class ChordNode:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.ip, self.port))
-            s.listen(10)##############################################################################
+            s.listen()##############################################################################
 
             while True:
                 conn, addr = s.accept()
@@ -195,6 +200,9 @@ class ChordNode:
                 
                 data = conn.recv(1024).decode().split(',')
                 #data = conn.recv(1024).decode()
+
+                print(data[0])
+                print(data[1])
 
                 if(data[0]=='8'):
                     data[2]=data[2].replace(';', ',')
@@ -255,15 +263,16 @@ class ChordNode:
     def store_data(self, username, data):
         key = getShaRepr(username)
         target_node = self.find_succ(key)
-        if target_node == self:
+        if target_node.id == self.ref.id:
             # Store in local database
             with db.atomic():
-                user, created = User.get_or_create(username=username)
+                #user, created = User.get_or_create(username=username)
                 if isinstance(data, dict): 
+                    user= User.create(username = data['username'], password=data['password'], email=data['email'])
                     #This means that the data is the user's info
-                    for field, value in data.items():
-                        setattr(user, field, value)
-                    user.save()
+                    #for field, value in data.items():
+                        #setattr(user, field, value)
+                    #user.save()#########################################################
                 elif isinstance(data, Tweet):
                     Tweet.create(user=user, content=data.content)
                 elif isinstance(data, Retweet):
