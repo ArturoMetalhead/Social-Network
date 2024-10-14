@@ -8,7 +8,7 @@ try:
     main_db.connect()
     main_db.close()
 except:
-    pass
+    print("Ha ocurrido un error al intentar conectar con la base de datos")
 
 class User(Model):
     name = CharField(120)
@@ -23,7 +23,7 @@ class Follow(Model):
     followed =  CharField(16)
 
     class Meta:
-        database = main_db  
+        database = main_db 
 
 class Tweet(Model):
     text = CharField(256)
@@ -32,4 +32,23 @@ class Tweet(Model):
     class Meta:
         database = main_db
 
+class ReTweet(Model):
+    user = ForeignKeyField(User)
+    nick = CharField(16)
+    date_tweet = DateTimeField()
+    date_retweet = DateTimeField(default=datetime.datetime.now())
+
+    class Meta:
+        database = main_db
+
+
+class Token(Model):
+    user_id = ForeignKeyField(User)
+    token = CharField(64, unique=True)
+
+    class Meta:
+        database = main_db
+
 #main_db.create_tables([User, Follow, Tweet, ReTweet, Token])
+
+
