@@ -1,0 +1,37 @@
+docker build -t my-entrypoint-server -f Dockerfile.entry .
+
+docker run -it --name entrypoint-server1 --net social-net --ip 172.19.0.2 my-entrypoint-server
+docker run -it --name entrypoint-server2 --net social-net --ip 172.19.0.3 my-entrypoint-server
+docker run -it --name entrypoint-server3 --net social-net --ip 172.19.0.4 my-entrypoint-server
+docker run -it --name entrypoint-server4 --net social-net --ip 172.19.0.5 my-entrypoint-server
+docker run -it --name entrypoint-server5 --net social-net --ip 172.19.0.6 my-entrypoint-server
+
+docker build -t my-chord-server -f Dockerfile.chord .
+
+docker run -it --name chord-server1 --net social-net --ip 172.19.0.7 my-chord-server
+docker run -it --name chord-server2 --net social-net --ip 172.19.0.8 my-chord-server
+docker run -it --name chord-server3 --net social-net --ip 172.19.0.9 my-chord-server
+docker run -it --name chord-server4 --net social-net --ip 172.19.0.10 my-chord-server
+docker run -it --name chord-server5 --net social-net --ip 172.19.0.11 my-chord-server
+docker run -it --name chord-server6 --net social-net --ip 172.19.0.12 my-chord-server
+docker run -it --name chord-server7 --net social-net --ip 172.19.0.13 my-chord-server
+docker run -it --name chord-server8 --net social-net --ip 172.19.0.14 my-chord-server
+docker run -it --name chord-server9 --net social-net --ip 172.19.0.15 my-chord-server
+docker run -it --name chord-server10 --net social-net --ip 172.19.0.16 my-chord-server
+docker run -it --name chord-server11 --net social-net --ip 172.19.0.17 my-chord-server
+docker run -it --name chord-server12 --net social-net --ip 172.19.0.18 my-chord-server
+
+docker build -t my-client -f Dockerfile.client .
+
+docker run -it --name client1 --net social-net --ip 172.19.0.19 my-client
+
+python shell_server_entry.py
+
+python shell_logger.py
+
+python shell_client.py
+
+c9fdf04b4b43547d8f69b59b64c9ee554f1cc8790cbe10315bd9ac4ccc7fb676
+3eda3cac47ba2edf0f400bee5ddc505097558de07cbce241abe014ce8c83d7b1
+3034d521ca4c9573370a5da52db0ffc1ab2d089329e1303b56ba15f3b35453e9
+d710d3033c87996f2df6880cc25e3bb6bc0b9dfc0a9fd604d7ea25113616d8b7
