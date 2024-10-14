@@ -1,0 +1,23 @@
+# Usa una imagen base de Python
+FROM python:3.11-slim
+
+# Establece el directorio de trabajo
+WORKDIR /app
+
+# Copia el archivo Python al contenedor
+# COPY API/server_entry_point.py .
+# COPY API/util.py .
+# COPY shell_server_entry.py .
+
+COPY . .
+
+# Instala las dependencias necesarias (si las hay)
+RUN pip install peewee
+
+# Comando para ejecutar el script
+#CMD ["python", "shell_server_entry.py"]
+
+# Instala bash
+RUN apt-get update && apt-get install -y bash
+
+ENTRYPOINT ["python", "shell_server_entry.py"]
