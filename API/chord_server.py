@@ -90,13 +90,6 @@ class StateStorage:
             value = self.storage.get(id ,None)
         return value
 
-
-# generate 32 bit key
-#  secrets.token_bytes([nbytes=None])
-
-# generate hash of a name
-# hashlib.sha256('leonardo'.encode()).digest()
-
     
 class ChordNode:
     def __init__(self ,id ,id_hex ,ip_list ,as_max):
