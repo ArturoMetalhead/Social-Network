@@ -25,8 +25,8 @@ class Twitter_Server():
         self.stop_threads = False
         self.thread_dict={}
 
-        self.chord_node = chord_node
-        self.sessions = {}
+        # self.chord_node = chord_node
+        # self.sessions = {}
 
     def start_server(self):
 
@@ -134,29 +134,29 @@ class Twitter_Server():
                 print(f"Error sending discovery message: {e}")
             time.sleep(5)
 
-    def listen_for_discovery(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            # Permite reutilizar la dirección y el puerto
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # def listen_for_discovery(self):
+    #     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+    #         # Permite reutilizar la dirección y el puerto
+    #         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             
-            try:
-                sock.bind(('', self.discovery_port))
-            except OSError as e:
-                print(f"Error binding to discovery port: {e}")
-                return
+    #         try:
+    #             sock.bind(('', self.discovery_port))
+    #         except OSError as e:
+    #             print(f"Error binding to discovery port: {e}")
+    #             return
 
-            while not self.stop_threads:
-                try:
-                    data, addr = sock.recvfrom(1024)
-                    message = json.loads(data.decode())
-                    if message['type'] == 'discovery':
-                        ip = message['ip']
-                        port = message['port']
+    #         while not self.stop_threads:
+    #             try:
+    #                 data, addr = sock.recvfrom(1024)
+    #                 message = json.loads(data.decode())
+    #                 if message['type'] == 'discovery':
+    #                     ip = message['ip']
+    #                     port = message['port']
 
-                        if (ip, port) not in self.registered_twitter_servers:
-                            self.registered_twitter_servers.append((ip, port))
-                            print(f"Discovered Twitter server: {ip}:{port}")
-                except Exception as e:
-                    print(f"Error in listen_for_discovery: {e}")
+    #                     if (ip, port) not in self.registered_twitter_servers:
+    #                         self.registered_twitter_servers.append((ip, port))
+    #                         print(f"Discovered Twitter server: {ip}:{port}")
+    #             except Exception as e:
+    #                 print(f"Error in listen_for_discovery: {e}")
     
     #endregion
