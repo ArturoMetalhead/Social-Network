@@ -5,9 +5,11 @@ from threading import Thread
 try:
     import util
     from util import PORT_GENERAL_ENTRY
+    import view
 except:
     import API.util as util
     from API.util import PORT_GENERAL_ENTRY
+    import API.view as view
 class Server():
 
     def __init__(self):
