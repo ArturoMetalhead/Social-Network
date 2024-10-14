@@ -31,3 +31,5 @@ class Tweet(Model):
     date = DateTimeField(default=datetime.datetime.now())
     class Meta:
         database = main_db
+
+#main_db.create_tables([User, Follow, Tweet, ReTweet, Token])
