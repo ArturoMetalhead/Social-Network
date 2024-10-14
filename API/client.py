@@ -81,11 +81,9 @@ class Client():
                 # print('Usuario Registrado correctamente')
                 return True, None
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
     
     def sign_in(self, nick, password):
         '''
@@ -109,11 +107,9 @@ class Client():
                 self.token = recv_data['token']
                 return True, recv_data['token']
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
     
     def logout(self, nick, token):
 
@@ -132,11 +128,9 @@ class Client():
             if recv_data['succesed']:                
                 return True, None
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
        
     
     def tweet(self, text, token, nick):
@@ -166,11 +160,9 @@ class Client():
             if recv_data['succesed']:                
                 return True, None
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
 
     def profile(self, nick_profile, token, nick, block):
 
@@ -193,11 +185,9 @@ class Client():
                 print("DATA RECIBIDA:", recv_data)
                 return True, recv_data['data_profile'], recv_data['over']
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error'], None
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
         
     def follow(self, nick_profile, token, nick):
 
@@ -208,7 +198,6 @@ class Client():
             'nick': nick,
             'nick_profile': nick_profile,
         }
-        #print('Walow')
         print('Follow CLient')
         good, recv_data = self.try_send_recv(msg)        
         if not good:
@@ -218,11 +207,9 @@ class Client():
             if recv_data['succesed']:
                 return True, None
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
     
     def retweet(self, token, nick, nick_profile, date):
         '''
@@ -248,11 +235,9 @@ class Client():
             if recv_data['succesed']:
                 return True, None
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'
         
     def feed(self, token, nick):
 
@@ -271,8 +256,6 @@ class Client():
             if recv_data['succesed']:
                 return True, recv_data['data']
             else:
-                # print(recv_data['error'])
                 return False, recv_data['error']
         else:
-            # print('Que mierda me respondieron?')
-            return False, 'Que mierda me respondieron?'
+            return False, 'Respuesta no esperada'

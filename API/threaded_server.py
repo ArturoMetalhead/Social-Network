@@ -110,25 +110,16 @@ class MultiThreadedServer:
         self.log = log
 
     def consumer_func(self, id : int,task_list: Queue ,event :Event, parse_func,self_timeout,storage):
-
-        print("ENTROOOOOOOOO")
         while not event.is_set() or not task_list.empty():
             try:
                 task = task_list.get(timeout=self_timeout)
                 if self.log:
                     print(f'START worker_{id}')
-                
-                print(f'{id}')
                 parse_func(id,task,event,storage)
-                print("se hizo parse func")
             except Empty:
-                #print("EMPTY")
                 continue
         if self.log:
             print(f'END worker_{id}')
-
-
-        print("SALIOOOOOOOO")
         self.current_thread_count -= 1
     
     def start_test(self):
@@ -156,11 +147,11 @@ class MultiThreadedServer:
             s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)        
             s.bind(("0.0.0.0", self.port))
             s.listen(5)
-            print(f'Listen')
+            print('Listen')
             while True:
                 (socket_client, addr_client) = s.accept()
-                print('Accept')
-                print(addr_client)
+                #print('Accept')
+                #print(addr_client)
                 if(self.end_event.is_set()):
                     #print('Aqui no debe entrar')
                     socket_client.close()

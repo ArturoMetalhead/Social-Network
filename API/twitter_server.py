@@ -186,9 +186,6 @@ class TweeterServer(MultiThreadedServer):
                 #reenviar mensaje de autenticacion
                 try:
                     state.desired_data['id_request'] = data_dict['id_request']
-                    print("PSSSSS")
-                    print("PSSSSS")
-                    print("PSSSSS")
                     send_and_close(addr_client[0], PORT_GENERAL_ENTRY, state.desired_data)
                     return
                 except:
@@ -210,14 +207,14 @@ class TweeterServer(MultiThreadedServer):
         #Hay que usar Chord para ver quien tiene a ese Nick
         nick = data_dict['nick']
         state = do_chord_sequence(storage,nick)
-        print('Llego el CHORD')
+        #print('Llego el CHORD')
         print(state.desired_data)        
         if state and state.desired_data:
             #Escribirle al server que tiene al usuario
             state2 = storage.insert_state()
             data = login_request_msg(nick, data_dict["password"], state2.id)
             send_and_close(state.desired_data['IP'][0],PORT_GENERAL_LOGGER, data)
-            print('Send an Close')
+            print('Send and Close')
             state = wait_get_delete(storage, state2)
             print('Wait', state.desired_data)
             if state and state.desired_data:
@@ -247,10 +244,8 @@ class TweeterServer(MultiThreadedServer):
             print('Data', data)
             send_and_close(state.desired_data['IP'][0],PORT_GENERAL_LOGGER, data)
             state = wait_get_delete(storage, state2)
-            print('luego del WWWWWAAAAAIIIITTTT')
             if state and state.desired_data:
                 #reenviar mensaje de autenticacion
-                print('State BIEEEEEEEEEN')
                 print(state.desired_data)
                 try:
                     state.desired_data['id_request'] = data_dict['id_request']
@@ -282,9 +277,9 @@ class TweeterServer(MultiThreadedServer):
                 print('antes del view')
                 code_pass = hashlib.sha256(password.encode()).hexdigest()
                 code_nick = hashlib.sha256(nick.encode()).hexdigest()
-                print('codificado')
+                #print('codificado')
                 view.CreateUser(name, nick, code_pass, code_nick)
-                print('view correcto')                
+                #print('view correcto')                
                 
                 #### AGREGANDO A LAS TAREAS PENDIENTES ####
                 with self.lock_tasks:
@@ -556,7 +551,7 @@ class TweeterServer(MultiThreadedServer):
             
             if retweets:
                 for t in retweets:
-                    print("RETWEETS???")
+                    #print("RETWEETS???")
                     print()
                     state = do_chord_sequence(storage, t['nick'])
                     
@@ -695,10 +690,10 @@ class TweeterServer(MultiThreadedServer):
             print('Seguidos')
             random.shuffle(followed)
             print(followed)
-            print('Antes del for')
+            #print('Antes del for')
             for f in followed[:min(20, len(followed))]:
                 
-                print("dentro del for")
+                #print("dentro del for")
                 print(f.followed)
                 state = do_chord_sequence(storage, f.followed) 
                 print(state.desired_data)
@@ -707,11 +702,11 @@ class TweeterServer(MultiThreadedServer):
                     #Escribirle al server que tiene al usuario
 
                     state2 = storage.insert_state()
-                    print("Ates de pedir una publicacion del seguido")
+                    #print("Ates de pedir una publicacion del seguido")
                     data = recent_published_request_msg(f.followed, state2.id)
                     print(data)
                     send_and_close(state.desired_data['IP'][0], PORT_GENERAL_LOGGER, data)
-                    print("despues de mandar la publicacion")
+                    #print("despues de mandar la publicacion")
                     state = wait_get_delete(storage, state2)
                     print('state', state.desired_data)
 
@@ -753,11 +748,11 @@ class TweeterServer(MultiThreadedServer):
         print('Check Teewt hecho')
         
         if tweet:
-            print('Hay Tweet')
+            #print('Hay Tweet')
             data = check_tweet_response_msg(True, id_request, tweet.text)
             print(data)
         else: 
-            print('No hay Tweet')
+            #print('No hay Tweet')
             data = check_tweet_response_msg(False, id_request, None)
         print('send and close')
         send_and_close(addr_client[0], PORT_GENERAL_LOGGER, data)
@@ -772,7 +767,7 @@ class TweeterServer(MultiThreadedServer):
         nick = data_dict['nick']
         data_publish = {'tweet': {}, 'retweet': {}}
         
-        print("antes de pedir el pefil")
+        #print("antes de pedir el pefil")
         tweet, retweet = view.GetProfileRange(nick, 0, 100)
         
         if len(tweet) == 0 and len(retweet) == 0:
@@ -841,7 +836,7 @@ class TweeterServer(MultiThreadedServer):
         send_and_close(addr_client[0], PORT_GENERAL_LOGGER, data)
         
     def new_logger_response(self, socket_client, addr_client, data_dict,storage):
-        print('entre al new logger response')
+        #print('entre al new logger response')
         socket_client.send('OK'.encode())
         socket_client.close()
         if self.chord_id:
@@ -894,7 +889,7 @@ class TweeterServer(MultiThreadedServer):
                     if data_dict['over']:
                         print('OVER')
                         if data_dict['table'] == FOLLOW_TABLE:
-                            print('TERMINE ENTERO')
+                            print('Finished')
                             print('')
                             data = transference_request_msg(self.chord_id,0, True,None)
                             skt.send(util.encode(data))

@@ -152,14 +152,14 @@ class EntryPointServerTheaded(MultiThreadedServer):
             elif protocol == FOLLOW_REQUEST:
                 self.follow_request_from_client(id, task, event, storage, data)
             else:
-                print('Q pifia metes?')
+                print('Incorrecto')
         elif type_msg == ENTRY_POINT:
             if protocol == ALIVE_REQUEST:                
                 self.alive_request_from_entry_point(id, task, event, storage, data)
             elif protocol == ADD_LOGGER:
                 self.add_logger_from_entry_point(id, task, event, storage, data)
             else:
-                print('Q pifia metes?')
+                print('Incorrecto')
         elif type_msg == LOGGER:
             if protocol == LOGIN_RESPONSE:
                 self.login_response_from_logger(id, task, event, storage, data)
@@ -178,16 +178,16 @@ class EntryPointServerTheaded(MultiThreadedServer):
             elif protocol == FOLLOW_RESPONSE:
                 self.follow_response_from_logger(id, task, event, storage, data)
             else:
-                print('Q pifia metes?')
+                print('Incorrecto')
         elif type_msg == CHORD:
             if protocol == NEW_LOGGER_REQUEST:
                 self.new_logger_request_from_logger(id, task, event, storage, data)
             elif protocol == INSERTED_LOGGER_REQUEST:
                 self.inserted_logger_request_from_logger(id, task, event, storage, data)
             else:
-                print('Q pifia metes?')
+                print('Incorrecto')
         else:
-            print('Q pifia metes?')
+            print('Incorrecto')
 
     def try_send_logger(self, message):
 
@@ -223,9 +223,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
             'password': password,
             'id_request': state.id
         }
-        print('antes del send')
         good, error = self.try_send_logger(message)
-        print('despues del send')
         if not good:            
             msg = {
                 'type': ENTRY_POINT,
@@ -236,8 +234,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en LOGIN REQUEST')
+                self.print('Sin state en LOGIN REQUEST')
                 task[0].close()
                 return
 
@@ -310,8 +307,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en LOGOUT REQUEST')
+                self.print('Sin state en LOGOUT REQUEST')
                 task[0].close()
                 return
 
@@ -385,8 +381,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en REGISTER REQUEST')
+                self.print('Sin state en REGISTER REQUEST')
                 task[0].close()
                 return
 
@@ -461,8 +456,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en CREATE TWEET REQUEST')
+                self.print('Sin state en CREATE TWEET REQUEST')
                 task[0].close()
                 return
 
@@ -540,8 +534,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en PROFILE REQUEST')
+                self.print('SIN state en PROFILE REQUEST')
                 task[0].close()
                 return
 
@@ -623,8 +616,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
             print('No wait')
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en FOLLOW REQUEST')
+                self.print('Sin state en FOLLOW REQUEST')
                 task[0].close()
                 return
 
@@ -705,7 +697,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
             state = storage.get_state(state.id)
             if state is None:
                 #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en FOLLOW REQUEST')
+                self.print('Sin state en FOLLOW REQUEST')
                 task[0].close()
                 return
 
@@ -743,7 +735,6 @@ class EntryPointServerTheaded(MultiThreadedServer):
 
 
     def retweet_response_from_logger(self, id:int,task: tuple[socket.socket,object],event:Event, storage, data: dict):
-        print('ENTROOOOOOOOO')
         with self.lock:
             self.stalker_loggers.update_IP(task[1][0])
         print('AGREGO')
@@ -754,7 +745,6 @@ class EntryPointServerTheaded(MultiThreadedServer):
         task[0].close()
         print('CLOSE')
         state.desired_data = data
-        print('AQUIIIIIIIIIIIIIIIIIII')
         print(data)
         state.hold_event.set()
 
@@ -762,7 +752,6 @@ class EntryPointServerTheaded(MultiThreadedServer):
 
     def feed_request_from_client(self, id:int,task: tuple[socket.socket,object],event:Event, storage, data: dict):
         
-        print('FEEEEEED from clients')
         token = data['token']
         nick = data['nick']        
 
@@ -777,7 +766,6 @@ class EntryPointServerTheaded(MultiThreadedServer):
         print(message)
 
         good, error = self.try_send_logger(message)
-        print('Llego al entry la respuesta')
         if not good:
             msg = {
                 'type': ENTRY_POINT,
@@ -788,8 +776,7 @@ class EntryPointServerTheaded(MultiThreadedServer):
         elif state.hold_event.wait(10):
             state = storage.get_state(state.id)
             if state is None:
-                #TODO ver que pasa aqui !!!!!!!!!!
-                self.print('QUE VERGA! SIN state en FOLLOW REQUEST')
+                self.print('Sin state en FOLLOW REQUEST')
                 task[0].close()
                 return
 
@@ -900,7 +887,6 @@ class EntryPointServerTheaded(MultiThreadedServer):
 
 
     def alive_request_from_entry_point(self, id:int,task: tuple[socket.socket,object],event:Event, storage, data: dict):
-        #TODO agregar condicional para cuando no este
         self.stalker_entrys.update_IP(task[1][0])
         task[0].send(util.encode({
             'type': ENTRY_POINT,
